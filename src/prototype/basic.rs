@@ -12,7 +12,7 @@ enum State {
 }
 
 #[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Voter {
     ecc_state: State,
 
@@ -52,7 +52,7 @@ impl Voter {
 
 // ECC
 impl Voter {
-    pub fn invoke_ecc(&mut self) -> () {
+    pub fn invoke_ecc(&mut self) {
         self.eout_voted = false;
         self.eout_ready = false;
 
@@ -100,7 +100,8 @@ impl Voter {
     ///     State := (A AND B) OR (A AND C) OR (B AND C);
     /// END_ALGORITHM
     /// ```
-    fn vote_algorithm(&mut self) -> () {
+    #[allow(clippy::nonminimal_bool)]
+    fn vote_algorithm(&mut self) {
         self.dout_state =
             (self.din_a && self.din_b) || (self.din_a && self.din_c) || (self.din_b && self.din_c);
     }
@@ -111,7 +112,7 @@ impl Voter {
     ///     State := FALSE;
     /// END_ALGORITHM
     /// ```
-    fn reset_algorithm(&mut self) -> () {
+    fn reset_algorithm(&mut self) {
         self.dout_state = false;
     }
 }
@@ -180,31 +181,40 @@ pub enum Sequence {
 }
 
 pub fn run_sequence(sequence: Sequence) {
-    // TODO: implement all sequences
-
-    // TODO: run function block until in acceptible state?
-    // rn i have to manually invoke the ecc to advance internal states
-    // write email for this probably
-
     let mut voter = Voter::new();
 
     match sequence {
         Sequence::PositiveVote => {
             voter.set_input_data("a", true);
             voter.set_input_data("c", true);
+            println!();
 
-            // problem: rn we can receive multiple input events at the same time
-            // ... potentially use queue in this or future versions after discussion
             voter.receive_input_event("vote");
 
-            println!("current voter state: {voter:?}");
+            println!("Ready: {voter:?}\n");
+
+            voter.invoke_ecc();
+
+            println!("Ready -> Vote: {voter:?}\n");
+
+            voter.invoke_ecc();
+
+            println!("Vote -> VotedPos: {voter:?}\n");
         }
         Sequence::NegativeVote => {
             voter.set_input_data("a", true);
 
             voter.receive_input_event("vote");
 
-            println!("current voter state: {voter:?}");
+            println!("Ready: {voter:?}");
+
+            voter.invoke_ecc();
+
+            println!("Ready -> Vote: {voter:?}");
+
+            voter.invoke_ecc();
+
+            println!("Vote -> Ready: {voter:?}");
         }
         Sequence::VotedReset => {
             voter.set_input_data("a", true);

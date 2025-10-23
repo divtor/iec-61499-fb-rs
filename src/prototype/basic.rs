@@ -1,6 +1,9 @@
 //! Basic implementation of the `Voter` function block. Here event signals are
 //! represented as booleans.
 
+use core::fmt;
+use std::fmt::Display;
+
 #[allow(dead_code)]
 #[derive(Debug, Default)]
 enum State {
@@ -172,6 +175,26 @@ impl Voter {
     }
 }
 
+impl Display for Voter {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "           +----------------------+\n")?;
+        write!(f, "{:5} --x--|Vote             Voted|-x--- {:5}\n", self.ein_vote, self.eout_voted)?;
+        write!(f, "        |  |          {:?}        | |\n", self.ecc_state)?;
+        write!(f, "{:5} -----|Reset            Ready|---x- {:5}\n", self.ein_reset, self.eout_ready)?;
+        write!(f, "        |  |                      | | |\n")?;
+        write!(f, "        |  +-+                  +-+ | |\n")?;
+        write!(f, "        |    |      VOTER       |   | |\n")?;
+        write!(f, "        |  +-+                  +-+ | |\n")?;
+        write!(f, "        |  |                      | | |\n")?;
+        write!(f, "{:5} --x--|A                State|-x-x- {:5}\n", self.din_a, self.dout_state)?;
+        write!(f, "        |  |                      |\n")?;
+        write!(f, "{:5} --x--|B                     |\n", self.din_b)?;
+        write!(f, "        |  |                      |\n")?;
+        write!(f, "{:5} --x--|C                     |\n", self.din_b)?;
+        write!(f, "           +----------------------+\n")
+    }
+}
+
 pub enum Sequence {
     PositiveVote,
     NegativeVote,
@@ -197,14 +220,14 @@ pub fn run_sequence(sequence: Sequence) {
             // ... potentially use queue in this or future versions after discussion
             voter.receive_input_event("vote");
 
-            println!("current voter state: {voter:?}");
+            println!("current voter state\n {voter}");
         }
         Sequence::NegativeVote => {
             voter.set_input_data("a", true);
 
             voter.receive_input_event("vote");
 
-            println!("current voter state: {voter:?}");
+            println!("current voter state\n {voter}");
         }
         Sequence::VotedReset => {
             voter.set_input_data("a", true);
@@ -213,34 +236,34 @@ pub fn run_sequence(sequence: Sequence) {
 
             voter.receive_input_event("vote");
 
-            println!("Ready: {voter:?}\n");
+            println!("Ready\n {voter}\n");
 
             voter.invoke_ecc();
 
-            println!("Ready -> Vote: {voter:?}\n");
+            println!("Ready -> Vote\n {voter}\n");
 
             voter.invoke_ecc();
 
-            println!("Vote -> VotedPos: {voter:?}\n");
+            println!("Vote -> VotedPos\n {voter}\n");
 
             voter.receive_input_event("reset");
 
             voter.invoke_ecc();
 
-            println!("VotedPos -> Reset: {voter:?}\n");
+            println!("VotedPos -> Reset\n {voter}\n");
 
             voter.invoke_ecc();
 
-            println!("Reset -> Ready: {voter:?}\n");
+            println!("Reset -> Ready\n {voter}\n");
         }
         Sequence::UnvotedReset => {
             voter.receive_input_event("reset");
 
-            println!("Ready: {voter:?}");
+            println!("Ready\n {voter}");
 
             voter.invoke_ecc();
 
-            println!("State after unvoted reset: {voter:?}");
+            println!("State after unvoted reset: {voter}");
         }
     }
 }

@@ -2,7 +2,9 @@
 //! represented as booleans.
 
 #[allow(dead_code)]
+#[derive(Debug, Default)]
 enum State {
+    #[default]
     Ready,
     Vote,
     VotedPos,
@@ -10,6 +12,7 @@ enum State {
 }
 
 #[allow(dead_code)]
+#[derive(Debug)]
 pub struct Voter {
     ecc_state: State,
 
@@ -30,7 +33,7 @@ pub struct Voter {
     dout_state: bool,
 }
 
-// constructors
+// behaviour instances
 impl Voter {
     pub fn new() -> Self {
         Voter {
@@ -50,6 +53,9 @@ impl Voter {
 // ECC
 impl Voter {
     pub fn invoke_ecc(&mut self) -> () {
+        self.eout_voted = false;
+        self.eout_ready = false;
+
         match self.ecc_state {
             State::Ready => {
                 if self.ein_vote {
@@ -57,13 +63,16 @@ impl Voter {
                 }
             }
             State::Vote => {
-                self.vote_sequence();
+                self.vote_algorithm();
+
+                self.eout_voted = true;
 
                 if self.dout_state {
                     self.ecc_state = State::VotedPos;
-                } else {
-                    self.ecc_state = State::Ready;
+                    return;
                 }
+
+                self.ecc_state = State::Ready;
             }
             State::VotedPos => {
                 if self.ein_reset {
@@ -71,23 +80,167 @@ impl Voter {
                 }
             }
             State::Reset => {
-                self.reset_sequence();
+                self.reset_algorithm();
 
+                self.eout_ready = true;
                 self.ecc_state = State::Ready;
             }
         }
+
+        self.ein_vote = false;
+        self.ein_reset = false;
     }
 }
 
 // sequences
 impl Voter {
-    fn vote_sequence(&mut self) -> () {
+    /// Definition in `IEC 61131-3 Structured Text`:
+    /// ```
+    /// ALGORITHM VoteAlg IN ST:
+    ///     State := (A AND B) OR (A AND C) OR (B AND C);
+    /// END_ALGORITHM
+    /// ```
+    fn vote_algorithm(&mut self) -> () {
         self.dout_state =
             (self.din_a && self.din_b) || (self.din_a && self.din_c) || (self.din_b && self.din_c);
-        self.eout_voted = true;
     }
 
-    fn reset_sequence(&mut self) -> () {
+    /// Definition in `IEC 61131-3 Structured Text`:
+    /// ```
+    /// ALGORITHM ResetAlg IN ST:
+    ///     State := FALSE;
+    /// END_ALGORITHM
+    /// ```
+    fn reset_algorithm(&mut self) -> () {
         self.dout_state = false;
+    }
+}
+
+// * probably abstractable in a cleaner way, look into this in other versions
+//  - events: Event<In/Out, EventType>
+//  - data: Data<In/Out, DataType>
+//
+// * problem: might not be clean easy to generate from structured text
+impl Voter {
+    pub fn receive_input_event(&mut self, event_str: &str) {
+        let mut unkown = false;
+
+        match event_str.to_lowercase().as_str() {
+            "vote" => self.ein_vote = true,
+            "reset" => self.ein_reset = true,
+            _ => unkown = true,
+        }
+
+        if unkown {
+            println!("unkown input event \"{event_str}\"");
+            return;
+        }
+
+        println!("received input event \"{event_str}\"");
+    }
+
+    pub fn check_output_event(&self, event_str: &str) -> Option<bool> {
+        match event_str.to_lowercase().as_str() {
+            "voted" => Some(self.eout_voted),
+            "ready" => Some(self.eout_ready),
+            _ => None,
+        }
+    }
+
+    pub fn set_input_data(&mut self, data_str: &str, value: bool) {
+        let mut unknown = false;
+
+        match data_str.to_lowercase().as_str() {
+            "a" => self.din_a = value,
+            "b" => self.din_b = value,
+            "c" => self.din_c = value,
+            _ => unknown = true,
+        }
+
+        if unknown {
+            println!("unknown input data \"{data_str}\"");
+        }
+
+        println!("set input data \"{data_str}\" to {value}");
+    }
+
+    pub fn get_output_data(&self, data_str: &str) -> Option<bool> {
+        match data_str.to_lowercase().as_str() {
+            "state" => Some(self.dout_state),
+            _ => None,
+        }
+    }
+}
+
+pub enum Sequence {
+    PositiveVote,
+    NegativeVote,
+    VotedReset,
+    UnvotedReset,
+}
+
+pub fn run_sequence(sequence: Sequence) {
+    // TODO: implement all sequences
+
+    // TODO: run function block until in acceptible state?
+    // rn i have to manually invoke the ecc to advance internal states
+    // write email for this probably
+
+    let mut voter = Voter::new();
+
+    match sequence {
+        Sequence::PositiveVote => {
+            voter.set_input_data("a", true);
+            voter.set_input_data("c", true);
+
+            // problem: rn we can receive multiple input events at the same time
+            // ... potentially use queue in this or future versions after discussion
+            voter.receive_input_event("vote");
+
+            println!("current voter state: {voter:?}");
+        }
+        Sequence::NegativeVote => {
+            voter.set_input_data("a", true);
+
+            voter.receive_input_event("vote");
+
+            println!("current voter state: {voter:?}");
+        }
+        Sequence::VotedReset => {
+            voter.set_input_data("a", true);
+            voter.set_input_data("c", true);
+            println!();
+
+            voter.receive_input_event("vote");
+
+            println!("Ready: {voter:?}\n");
+
+            voter.invoke_ecc();
+
+            println!("Ready -> Vote: {voter:?}\n");
+
+            voter.invoke_ecc();
+
+            println!("Vote -> VotedPos: {voter:?}\n");
+
+            voter.receive_input_event("reset");
+
+            voter.invoke_ecc();
+
+            println!("VotedPos -> Reset: {voter:?}\n");
+
+            voter.invoke_ecc();
+
+            println!("Reset -> Ready: {voter:?}\n");
+        }
+        Sequence::UnvotedReset => {
+            voter.receive_input_event("reset");
+
+            println!("Ready: {voter:?}");
+
+            voter.invoke_ecc();
+
+            println!("State after unvoted reset: {voter:?}");
+        }
     }
 }

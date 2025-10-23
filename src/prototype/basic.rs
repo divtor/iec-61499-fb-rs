@@ -36,6 +36,12 @@ pub struct Voter {
     dout_state: bool,
 }
 
+impl Display for State {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
+
 // behaviour instances
 impl Voter {
     pub fn new() -> Self {
@@ -178,9 +184,10 @@ impl Voter {
 
 impl Display for Voter {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "                    {}\n", self.ecc_state)?;
         write!(f, "           +----------------------+\n")?;
         write!(f, "{:5} --x--|Vote             Voted|-x--- {:5}\n", self.ein_vote, self.eout_voted)?;
-        write!(f, "        |  |          {:?}        | |\n", self.ecc_state)?;
+        write!(f, "        |  |                      | |\n")?;
         write!(f, "{:5} -----|Reset            Ready|---x- {:5}\n", self.ein_reset, self.eout_ready)?;
         write!(f, "        |  |                      | | |\n")?;
         write!(f, "        |  +-+                  +-+ | |\n")?;

@@ -4,6 +4,8 @@
 use core::fmt;
 use std::fmt::Display;
 
+use crate::cli::output::voter_fb_string;
+
 #[allow(dead_code)]
 #[derive(Debug, Default)]
 enum State {
@@ -42,20 +44,21 @@ impl Display for State {
     }
 }
 
-// behaviour instances
-impl Voter {
-    pub fn new() -> Self {
-        Voter {
-            ecc_state: State::Ready,
-            ein_vote: false,
-            ein_reset: false,
-            eout_voted: false,
-            eout_ready: false,
-            din_a: false,
-            din_b: false,
-            din_c: false,
-            dout_state: false,
-        }
+impl Display for Voter {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let buf = voter_fb_string(
+            self.ecc_state.to_string().as_str(),
+            self.ein_vote.to_string().as_str(),
+            self.ein_reset.to_string().as_str(),
+            self.eout_voted.to_string().as_str(),
+            self.eout_ready.to_string().as_str(),
+            self.din_a.to_string().as_str(),
+            self.din_b.to_string().as_str(),
+            self.din_c.to_string().as_str(),
+            self.dout_state.to_string().as_str(),
+        );
+
+        write!(f, "{buf}")
     }
 }
 
@@ -182,27 +185,6 @@ impl Voter {
     }
 }
 
-impl Display for Voter {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "                    {}\n", self.ecc_state)?;
-        write!(f, "           +----------------------+\n")?;
-        write!(f, "{:5} --x--|Vote             Voted|-x--- {:5}\n", self.ein_vote, self.eout_voted)?;
-        write!(f, "        |  |                      | |\n")?;
-        write!(f, "{:5} -----|Reset            Ready|---x- {:5}\n", self.ein_reset, self.eout_ready)?;
-        write!(f, "        |  |                      | | |\n")?;
-        write!(f, "        |  +-+                  +-+ | |\n")?;
-        write!(f, "        |    |      VOTER       |   | |\n")?;
-        write!(f, "        |  +-+                  +-+ | |\n")?;
-        write!(f, "        |  |                      | | |\n")?;
-        write!(f, "{:5} --x--|A                State|-x-x- {:5}\n", self.din_a, self.dout_state)?;
-        write!(f, "        |  |                      |\n")?;
-        write!(f, "{:5} --x--|B                     |\n", self.din_b)?;
-        write!(f, "        |  |                      |\n")?;
-        write!(f, "{:5} --x--|C                     |\n", self.din_b)?;
-        write!(f, "           +----------------------+\n")
-    }
-}
-
 pub enum Sequence {
     PositiveVote,
     NegativeVote,
@@ -211,7 +193,7 @@ pub enum Sequence {
 }
 
 pub fn run_sequence(sequence: Sequence) {
-    let mut voter = Voter::new();
+    let mut voter = Voter::default();
 
     match sequence {
         Sequence::PositiveVote => {

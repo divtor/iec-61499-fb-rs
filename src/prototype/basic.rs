@@ -4,7 +4,7 @@
 use core::fmt;
 use std::fmt::Display;
 
-use crate::cli::output::voter_fb_string;
+use crate::cli::{args::Sequence, output::voter_fb_string};
 
 #[allow(dead_code)]
 #[derive(Debug, Default)]
@@ -14,6 +14,12 @@ enum State {
     Vote,
     VotedPos,
     Reset,
+}
+
+impl Display for State {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self:?}")
+    }
 }
 
 #[allow(dead_code)]
@@ -38,12 +44,6 @@ pub struct Voter {
     dout_state: bool,
 }
 
-impl Display for State {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{self:?}")
-    }
-}
-
 impl Display for Voter {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let buf = voter_fb_string(
@@ -64,7 +64,9 @@ impl Display for Voter {
 
 // ECC
 impl Voter {
-    pub fn invoke_ecc(&mut self) {
+    fn invoke_ecc(&mut self) -> bool {
+        let mut state_changed = false;
+
         self.eout_voted = false;
         self.eout_ready = false;
 
@@ -72,6 +74,7 @@ impl Voter {
             State::Ready => {
                 if self.ein_vote {
                     self.ecc_state = State::Vote;
+                    state_changed = true;
                 }
             }
             State::Vote => {
@@ -81,14 +84,16 @@ impl Voter {
 
                 if self.dout_state {
                     self.ecc_state = State::VotedPos;
-                    return;
+                } else {
+                    self.ecc_state = State::Ready;
                 }
 
-                self.ecc_state = State::Ready;
+                state_changed = true;
             }
             State::VotedPos => {
                 if self.ein_reset {
                     self.ecc_state = State::Reset;
+                    state_changed = true;
                 }
             }
             State::Reset => {
@@ -96,11 +101,22 @@ impl Voter {
 
                 self.eout_ready = true;
                 self.ecc_state = State::Ready;
+                state_changed = true;
             }
         }
 
         self.ein_vote = false;
         self.ein_reset = false;
+
+        state_changed
+    }
+
+    pub fn invoke_until_stable(&mut self) {
+        let mut invoke = true;
+
+        while invoke {
+            invoke = self.invoke_ecc();
+        }
     }
 }
 
@@ -185,13 +201,6 @@ impl Voter {
     }
 }
 
-pub enum Sequence {
-    PositiveVote,
-    NegativeVote,
-    VotedReset,
-    UnvotedReset,
-}
-
 pub fn run_sequence(sequence: Sequence) {
     let mut voter = Voter::default();
 
@@ -203,14 +212,23 @@ pub fn run_sequence(sequence: Sequence) {
 
             voter.receive_input_event("vote");
 
-            println!("current voter state\n {voter}");
+            println!("PositiveVote setup\n {voter}");
+
+            voter.invoke_until_stable();
+
+            println!("Stable state after\n {voter}");
         }
         Sequence::NegativeVote => {
             voter.set_input_data("a", true);
+            println!();
 
             voter.receive_input_event("vote");
 
-            println!("current voter state\n {voter}");
+            println!("Negative Vote setup\n {voter}");
+
+            voter.invoke_until_stable();
+
+            println!("Stable state after\n {voter}");
         }
         Sequence::VotedReset => {
             voter.set_input_data("a", true);
@@ -219,34 +237,28 @@ pub fn run_sequence(sequence: Sequence) {
 
             voter.receive_input_event("vote");
 
-            println!("Ready\n {voter}\n");
+            println!("PositiveVote setup\n {voter}");
 
-            voter.invoke_ecc();
+            voter.invoke_until_stable();
 
-            println!("Ready -> Vote\n {voter}\n");
-
-            voter.invoke_ecc();
-
-            println!("Vote -> VotedPos\n {voter}\n");
+            println!("Stable state after\n {voter}");
 
             voter.receive_input_event("reset");
 
-            voter.invoke_ecc();
+            println!("Reset setup\n {voter}");
 
-            println!("VotedPos -> Reset\n {voter}\n");
+            voter.invoke_until_stable();
 
-            voter.invoke_ecc();
-
-            println!("Reset -> Ready\n {voter}\n");
+            println!("Stable state after\n {voter}");
         }
         Sequence::UnvotedReset => {
             voter.receive_input_event("reset");
 
-            println!("Ready\n {voter}");
+            println!("Unvoted Reset setup\n {voter}");
 
-            voter.invoke_ecc();
+            voter.invoke_until_stable();
 
-            println!("State after unvoted reset: {voter}");
+            println!("Stable state after\n {voter}");
         }
     }
 }

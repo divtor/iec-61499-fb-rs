@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 pub enum Direction {
     In,
     Out,
@@ -34,10 +36,29 @@ impl EventType for Event {}
 
 pub trait DataType {}
 
-// TODO: look into valid types
+/// `IEC 61131-3` data types
 pub enum Data {
-    Boolean(bool),
-    Integer(i32),
+    SINT(i8),
+    INT(i16),
+    DINT(i32),
+    LINT(i64),
+    USINT(u8),
+    UINT(u16),
+    UDINT(u32),
+    ULINT(u64),
+    REAL(f32),
+    LREAL(f64),
+    TIME(Duration),
+    DATE, // TODO
+    TOD,  // TODO
+    DT,   // TODO
+    STRING(Vec<u8>),
+    WSTRING(Vec<u16>),
+    BOOL(bool),
+    BYTE(u8),
+    WORD(u16),
+    DWORD(u32),
+    LWORD(u64),
 }
 
 impl DataType for Data {}

@@ -12,8 +12,11 @@ fn main() {
             Mode::Sequence => {
                 prototype::basic::run_sequence(args.sequence);
             }
-            _ => panic!("Mode {} is not implemented yet!", args.mode),
+            _ => println!("Mode \"{}\" is not implemented yet!", args.mode),
         },
-        _ => panic!("Implementation {} does not exist yet!", args.implementation),
+        _ => println!(
+            "Implementation \"{}\" does not exist yet!",
+            args.implementation
+        ),
     }
 }

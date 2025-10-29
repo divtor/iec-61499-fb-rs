@@ -4,8 +4,8 @@ pub trait EventType {}
 
 #[derive(Clone, Debug, Default)]
 pub struct Event<D: Direction, T: EventType> {
-    pub direction: D,
-    pub event: T,
+    _direction: D,
+    _event: T,
 }
 
 #[derive(Clone, Debug, Default)]

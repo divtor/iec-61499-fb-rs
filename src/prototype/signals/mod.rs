@@ -1,8 +1,10 @@
-use data::{Bool, Data};
+use data::Data;
+use data_type::Bool;
 use direction::{In, Out};
 use event::{Event, Signal};
 
 pub mod data;
+pub mod data_type;
 pub mod direction;
 pub mod event;
 
@@ -38,6 +40,12 @@ pub struct Voter {
 impl Voter {
     #[allow(dead_code)]
     fn vote_algorithm(&mut self) {
-        let _tmp = self.a.data.0;
+        let a = *self.a.read();
+        let b = *self.b.read();
+        let c = *self.c.read();
+
+        let vote = (a && b) || (b && c) || (a && c);
+
+        self.state.write(vote);
     }
 }

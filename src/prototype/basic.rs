@@ -4,7 +4,10 @@
 use core::fmt;
 use std::fmt::Display;
 
-use crate::cli::{args::Sequence, output::voter_fb_string};
+use crate::cli::{
+    args::Sequence,
+    output::{VoterInformation, create_voter_string},
+};
 
 #[allow(dead_code)]
 #[derive(Debug, Default)]
@@ -19,6 +22,17 @@ enum State {
 impl Display for State {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{self:?}")
+    }
+}
+
+impl State {
+    fn as_str(&self) -> &'static str {
+        match self {
+            State::Ready => "Ready",
+            State::Vote => "Vote",
+            State::VotedPos => "VotedPos",
+            State::Reset => "Reset",
+        }
     }
 }
 
@@ -44,20 +58,34 @@ pub struct Voter {
     dout_state: bool,
 }
 
+#[allow(clippy::from_over_into)]
+impl Into<VoterInformation> for &Voter {
+    fn into(self) -> VoterInformation {
+        VoterInformation {
+            ecc: self.ecc_state.as_str(),
+            vote: if self.ein_vote {
+                "RECEIVED"
+            } else {
+                "INACTIVE"
+            },
+            reset: if self.ein_reset {
+                "RECEIVED"
+            } else {
+                "INACTIVE"
+            },
+            voted: if self.eout_voted { "SENT" } else { "INACTIVE" },
+            ready: if self.eout_ready { "SENT" } else { "INACTIVE" },
+            a: if self.din_a { "TRUE" } else { "FALSE" },
+            b: if self.din_b { "TRUE" } else { "FALSE" },
+            c: if self.din_c { "TRUE" } else { "FALSE" },
+            state: if self.dout_state { "TRUE" } else { "FALSE" },
+        }
+    }
+}
+
 impl Display for Voter {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let buf = voter_fb_string(
-            self.ecc_state.to_string().as_str(),
-            self.ein_vote.to_string().as_str(),
-            self.ein_reset.to_string().as_str(),
-            self.eout_voted.to_string().as_str(),
-            self.eout_ready.to_string().as_str(),
-            self.din_a.to_string().as_str(),
-            self.din_b.to_string().as_str(),
-            self.din_c.to_string().as_str(),
-            self.dout_state.to_string().as_str(),
-        );
-
+        let buf = create_voter_string(self.into());
         write!(f, "{buf}")
     }
 }

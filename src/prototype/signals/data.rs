@@ -3,29 +3,36 @@ use super::{
     direction::{Direction, In, Out},
 };
 
-#[allow(dead_code)]
 /// Represents a data input or output.
 #[derive(Clone, Debug, Default)]
 pub struct Data<D: Direction, T: DataType> {
-    direction: D,
-    data: T,
+    _direction: D,
+    value: T,
 }
 
 /// impl for both directions
 impl<D: Direction, T: DataType> Data<D, T> {
     pub fn read(&self) -> &<T as DataType>::Inner {
-        self.data.get()
+        self.value.get()
     }
 }
 
 /// impl for `In`
 impl<T: DataType> Data<In, T> {
+    // TODO: discuss how to implement this (might not be callable from voter instance)
     pub fn update(&mut self) {}
 }
 
 /// impl for `Out`
 impl<T: DataType> Data<Out, T> {
     pub fn write(&mut self, value: <T as DataType>::Inner) {
-        self.data.set(value);
+        self.value.set(value);
     }
+}
+
+pub fn set_explicit_value<D: Direction, T: DataType>(
+    data: &mut Data<D, T>,
+    value: <T as DataType>::Inner,
+) {
+    data.value.set(value);
 }

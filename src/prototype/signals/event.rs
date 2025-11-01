@@ -1,14 +1,36 @@
-use crate::prototype::signals::direction::Direction;
+use crate::prototype::signals::event_type::EventType;
 
-pub trait EventType {}
+use super::{
+    direction::{Direction, In, Out},
+    event_type::Signal,
+};
 
 #[derive(Clone, Debug, Default)]
-pub struct Event<D: Direction, T: EventType> {
+pub struct Event<D: Direction> {
     _direction: D,
-    _event: T,
+    signal: Signal,
 }
 
-#[derive(Clone, Debug, Default)]
-pub struct Signal {}
+impl<D: Direction> Event<D> {
+    pub fn receive(&mut self) {
+        self.signal.set(true);
+    }
+}
 
-impl EventType for Signal {}
+impl Event<In> {
+    // TODO: this seems false
+    pub fn read_and_reset(&mut self) -> bool {
+        let curr = self.signal.get();
+
+        self.signal.set(false);
+
+        curr
+    }
+}
+
+impl Event<Out> {
+    // TODO: how to model sending in my context (when does it get set to "false" again)
+    pub fn send(&mut self) {
+        self.signal.set(true);
+    }
+}

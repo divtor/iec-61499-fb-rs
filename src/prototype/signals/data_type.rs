@@ -34,6 +34,8 @@ pub enum DataTypeKind {
     LWord,
 }
 
+/// Implements the `DataType` trait for a given struct.
+/// Requirement: the struct needs to have a field called `data`.
 macro_rules! impl_data_type {
     ($name:ident, $inner:ty) => {
         impl DataType for $name {

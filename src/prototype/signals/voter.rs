@@ -1,7 +1,11 @@
-use super::data::Data;
-use super::data_type::Bool;
-use super::direction::{In, Out};
-use super::event::{Event, Signal};
+use crate::cli::args::Sequence;
+
+use super::{
+    data::{self, Data},
+    data_type::Bool,
+    direction::{In, Out},
+    event::Event,
+};
 
 // TODO: figure out:
 // - how to associate `Data` to `Event` (WITH qualifier)
@@ -22,10 +26,10 @@ pub enum VoterState {
 #[allow(dead_code)]
 pub struct Voter {
     ecc: VoterState,
-    vote: Event<In, Signal>,
-    reset: Event<In, Signal>,
-    voted: Event<Out, Signal>,
-    ready: Event<Out, Signal>,
+    vote: Event<In>,
+    reset: Event<In>,
+    voted: Event<Out>,
+    ready: Event<Out>,
     a: Data<In, Bool>,
     b: Data<In, Bool>,
     c: Data<In, Bool>,
@@ -33,7 +37,8 @@ pub struct Voter {
 }
 
 impl Voter {
-    #[allow(dead_code, clippy::nonminimal_bool)]
+    #[allow(clippy::nonminimal_bool)]
+    /// the vote algorithm implemented according to the specification
     fn vote_algorithm(&mut self) {
         let a = *self.a.read();
         let b = *self.b.read();
@@ -44,36 +49,102 @@ impl Voter {
         self.state.write(vote);
     }
 
-    #[allow(dead_code)]
+    /// the reset algorithm implemented according to the specification
     fn reset_algorithm(&mut self) {
         self.state.write(false);
     }
-}
 
-impl Voter {
-    #[allow(dead_code, unreachable_code)]
     /// Advances the current ecc state.
     /// Returns `true` if the state has changed.
     fn invoke_ecc(&mut self) -> bool {
-        let _ecc_changed = false;
+        let mut ecc_changed = false;
 
         match self.ecc {
             VoterState::Ready => {
-                todo!("implement events")
+                if self.vote.read_and_reset() {
+                    self.ecc = VoterState::Vote;
+                    ecc_changed = true;
+                }
             }
             VoterState::Vote => {
                 self.vote_algorithm();
-                todo!("implement events")
+
+                self.voted.send();
+
+                if *self.state.read() {
+                    self.ecc = VoterState::VotedPos;
+                } else {
+                    self.ecc = VoterState::Ready;
+                }
+
+                ecc_changed = true;
             }
             VoterState::VotedPos => {
-                todo!("implement events")
+                if self.reset.read_and_reset() {
+                    self.ecc = VoterState::Reset;
+                    ecc_changed = true;
+                }
             }
             VoterState::Reset => {
                 self.reset_algorithm();
-                todo!("implement events")
+
+                self.ready.send();
+                self.ecc = VoterState::Ready;
+                ecc_changed = true;
             }
         }
 
-        _ecc_changed
+        ecc_changed
+    }
+}
+
+fn receive_signal(voter: &mut Voter, signal: &str) {
+    match signal {
+        "vote" => voter.vote.receive(),
+        "reset" => voter.reset.receive(),
+        _ => println!("unkown signal \"{signal}\""),
+    }
+}
+
+fn run_voter_until_stable(voter: &mut Voter) {
+    let mut not_stable = true;
+
+    while not_stable {
+        not_stable = voter.invoke_ecc();
+    }
+}
+
+pub fn execute_sequence(sequence: Sequence) {
+    let mut voter = Voter::default();
+
+    // setup voter according to sequence
+    match sequence {
+        Sequence::PositiveVote => {
+            data::set_explicit_value(&mut voter.a, true);
+            data::set_explicit_value(&mut voter.c, true);
+
+            receive_signal(&mut voter, "vote");
+        }
+        Sequence::NegativeVote => {
+            data::set_explicit_value(&mut voter.a, true);
+
+            receive_signal(&mut voter, "vote");
+        }
+        Sequence::VotedReset => {
+            data::set_explicit_value(&mut voter.a, true);
+            data::set_explicit_value(&mut voter.c, true);
+
+            receive_signal(&mut voter, "vote");
+        }
+        Sequence::UnvotedReset => {
+            receive_signal(&mut voter, "reset");
+        }
+    }
+
+    run_voter_until_stable(&mut voter);
+
+    if matches!(sequence, Sequence::VotedReset) {
+        receive_signal(&mut voter, "reset");
+        run_voter_until_stable(&mut voter);
     }
 }

@@ -7,16 +7,21 @@ use iec_61499_fb_rs::{
 fn main() {
     let args: Args = Args::parse();
 
-    match args.implementation {
-        Implementation::PrototypeBasic => match args.mode {
-            Mode::Sequence => {
-                prototype::basic::run_sequence(args.sequence);
-            }
-            _ => println!("Mode \"{}\" is not implemented yet!", args.mode),
-        },
-        _ => println!(
-            "Implementation \"{}\" does not exist yet!",
-            args.implementation
-        ),
+    use Implementation::*;
+    use Mode::*;
+
+    match (args.implementation, args.mode) {
+        (PrototypeBasic, Sequence) => {
+            prototype::basic::run_sequence(args.sequence);
+        }
+        (PrototypeSignals, Sequence) => {
+            prototype::signals::voter::execute_sequence(args.sequence);
+        }
+        (PrototypeBasic | PrototypeSignals, mode) => {
+            println!("mode \"{mode}\" is not implemented yet!");
+        }
+        (implementation, _) => {
+            println!("implementation \"{implementation}\" does not exist!");
+        }
     }
 }

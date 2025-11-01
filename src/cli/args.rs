@@ -5,7 +5,8 @@ use std::fmt;
 pub enum Implementation {
     #[default]
     PrototypeBasic,
-    PrototypeEnum,
+    PrototypeSignals,
+    Runtime,
 }
 
 impl fmt::Display for Implementation {

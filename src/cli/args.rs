@@ -2,14 +2,13 @@ use clap::{Parser, ValueEnum};
 use std::fmt;
 
 #[derive(Clone, Debug, clap::ValueEnum, Default)]
-pub enum Implementation {
+pub enum Voter {
     #[default]
-    PrototypeBasic,
-    PrototypeSignals,
-    Runtime,
+    Basic,
+    Traited,
 }
 
-impl fmt::Display for Implementation {
+impl fmt::Display for Voter {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.to_possible_value().unwrap().get_name())
     }
@@ -49,10 +48,10 @@ pub struct Args {
     #[arg(
         short,
         long,
-        default_value_t = Implementation::PrototypeBasic,
-        help = "Choose implementation"
+        default_value_t = Voter::Basic,
+        help = "Choose voter implementation"
     )]
-    pub implementation: Implementation,
+    pub voter: Voter,
 
     #[arg(short, long, default_value_t = Mode::Sequence, help = "Choose mode")]
     pub mode: Mode,

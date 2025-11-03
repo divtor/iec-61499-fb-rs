@@ -1,8 +1,6 @@
-use crate::prototype::signals::event_type::EventType;
-
 use super::{
     direction::{Direction, In, Out},
-    event_type::Signal,
+    event_type::{EventType, Signal},
 };
 
 #[derive(Clone, Debug, Default)]

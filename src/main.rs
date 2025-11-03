@@ -1,27 +1,31 @@
 use clap::Parser;
 use iec_61499_fb_rs::{
-    cli::args::{Args, Implementation, Mode},
-    prototype,
+    cli::args::{Args, Mode, Voter},
+    fb, run_time,
 };
 
 fn main() {
     let args: Args = Args::parse();
 
-    use Implementation::*;
     use Mode::*;
+    use Voter::*;
 
-    match (args.implementation, args.mode) {
-        (PrototypeBasic, Sequence) => {
-            prototype::basic::run_sequence(args.sequence);
+    #[allow(unreachable_patterns)] // might be extended later
+    match (args.voter, args.mode) {
+        (Basic, Sequence) => {
+            fb::basic::run_sequence(args.sequence);
         }
-        (PrototypeSignals, Sequence) => {
-            prototype::signals::voter::execute_sequence(args.sequence);
+        (Traited, Sequence) => {
+            fb::traited::run_sequence(args.sequence);
         }
-        (PrototypeBasic | PrototypeSignals, mode) => {
+        (Traited, Interactive) => {
+            run_time::interactive::simple_traited_runtime();
+        }
+        (Basic | Traited, mode) => {
             println!("mode \"{mode}\" is not implemented yet!");
         }
         (implementation, _) => {
-            println!("implementation \"{implementation}\" does not exist!");
+            println!("voter implementation \"{implementation}\" does not exist!");
         }
     }
 }

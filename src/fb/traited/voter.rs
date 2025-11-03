@@ -10,11 +10,9 @@ use super::{
 // TODO: figure out:
 // - how to associate `Data` to `Event` (WITH qualifier)
 // - how to fetch new values on associated `Data`
-// - how to represent `Event` invocation (Needs to be discussed)
-// - implement the Voter Block with signals
 
 #[derive(Clone, Debug, Default)]
-pub enum VoterState {
+enum VoterState {
     #[default]
     Ready,
     Vote,
@@ -62,6 +60,10 @@ impl Voter {
         match self.ecc {
             VoterState::Ready => {
                 if self.vote.read_and_reset() {
+                    self.a.update();
+                    self.b.update();
+                    self.c.update();
+
                     self.ecc = VoterState::Vote;
                     ecc_changed = true;
                 }
@@ -98,7 +100,7 @@ impl Voter {
     }
 }
 
-fn receive_signal(voter: &mut Voter, signal: &str) {
+pub fn receive_signal(voter: &mut Voter, signal: &str) {
     match signal {
         "vote" => voter.vote.receive(),
         "reset" => voter.reset.receive(),
@@ -106,7 +108,20 @@ fn receive_signal(voter: &mut Voter, signal: &str) {
     }
 }
 
-fn run_voter_until_stable(voter: &mut Voter) {
+pub fn toggle_input_data(voter: &mut Voter, data: &str) {
+    let a = *voter.a.read();
+    let b = *voter.b.read();
+    let c = *voter.c.read();
+
+    match data {
+        "a" => data::set_explicit_value(&mut voter.a, !a),
+        "b" => data::set_explicit_value(&mut voter.b, !b),
+        "c" => data::set_explicit_value(&mut voter.c, !c),
+        _ => println!("unkown input data \"{data}\""),
+    }
+}
+
+pub fn run_voter_until_stable(voter: &mut Voter) {
     let mut not_stable = true;
 
     while not_stable {
@@ -114,7 +129,11 @@ fn run_voter_until_stable(voter: &mut Voter) {
     }
 }
 
-pub fn execute_sequence(sequence: Sequence) {
+pub fn invoke_ecc_once(voter: &mut Voter) {
+    voter.invoke_ecc();
+}
+
+pub fn run_sequence(sequence: Sequence) {
     let mut voter = Voter::default();
 
     // setup voter according to sequence

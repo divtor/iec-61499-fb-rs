@@ -1,4 +1,6 @@
-use crate::cli::args::Sequence;
+use core::fmt;
+
+use crate::cli::{self, args::Sequence, output::VoterInformation};
 
 use super::{
     data::{self, Data},
@@ -18,6 +20,17 @@ enum VoterState {
     Vote,
     VotedPos,
     Reset,
+}
+
+impl VoterState {
+    fn as_str(&self) -> &'static str {
+        match self {
+            VoterState::Ready => "Ready",
+            VoterState::Vote => "Vote",
+            VoterState::VotedPos => "VotedPos",
+            VoterState::Reset => "Reset",
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default)]
@@ -100,37 +113,81 @@ impl Voter {
     }
 }
 
-pub fn receive_signal(voter: &mut Voter, signal: &str) {
-    match signal {
-        "vote" => voter.vote.receive(),
-        "reset" => voter.reset.receive(),
-        _ => println!("unkown signal \"{signal}\""),
+#[allow(clippy::from_over_into)]
+impl Into<VoterInformation> for &Voter {
+    fn into(self) -> VoterInformation {
+        VoterInformation {
+            ecc: self.ecc.as_str(),
+            vote: if self.vote.read() {
+                "RECEIVED"
+            } else {
+                "INACTIVE"
+            },
+            reset: if self.reset.read() {
+                "RECEIVED"
+            } else {
+                "INACTIVE"
+            },
+            voted: if self.voted.read() {
+                "SENT"
+            } else {
+                "INACTIVE"
+            },
+            ready: if self.ready.read() {
+                "SENT"
+            } else {
+                "INACTIVE"
+            },
+            a: if *self.a.read() { "TRUE" } else { "FALSE" },
+            b: if *self.b.read() { "TRUE" } else { "FALSE" },
+            c: if *self.c.read() { "TRUE" } else { "FALSE" },
+            state: if *self.state.read() { "TRUE" } else { "FALSE" },
+        }
     }
 }
 
-pub fn toggle_input_data(voter: &mut Voter, data: &str) {
-    let a = *voter.a.read();
-    let b = *voter.b.read();
-    let c = *voter.c.read();
-
-    match data {
-        "a" => data::set_explicit_value(&mut voter.a, !a),
-        "b" => data::set_explicit_value(&mut voter.b, !b),
-        "c" => data::set_explicit_value(&mut voter.c, !c),
-        _ => println!("unkown input data \"{data}\""),
+impl fmt::Display for Voter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let buf = cli::output::create_voter_string(self.into());
+        write!(f, "{buf}")
     }
 }
 
-pub fn run_voter_until_stable(voter: &mut Voter) {
-    let mut not_stable = true;
+// Prototyping methods (not sure if these belong here)
+impl Voter {
+    pub fn receive_signal(&mut self, signal: &str) {
+        if self.vote.read() || self.reset.read() {
+            println!("there is already a different signal active");
+            return;
+        }
 
-    while not_stable {
-        not_stable = voter.invoke_ecc();
+        match signal.to_lowercase().as_str() {
+            "vote" => self.vote.receive(),
+            "reset" => self.reset.receive(),
+            _ => println!("unkown signal \"{signal}\""),
+        }
     }
-}
 
-pub fn invoke_ecc_once(voter: &mut Voter) {
-    voter.invoke_ecc();
+    pub fn toggle_input_data(&mut self, data: &str) {
+        match data.to_lowercase().as_str() {
+            "a" => data::toggle(&mut self.a),
+            "b" => data::toggle(&mut self.b),
+            "c" => data::toggle(&mut self.c),
+            _ => println!("unkown input data \"{data}\""),
+        }
+    }
+
+    pub fn run_voter_until_stable(&mut self) {
+        let mut not_stable = true;
+
+        while not_stable {
+            not_stable = self.invoke_ecc();
+        }
+    }
+
+    pub fn invoke_ecc_once(&mut self) {
+        self.invoke_ecc();
+    }
 }
 
 pub fn run_sequence(sequence: Sequence) {
@@ -139,31 +196,31 @@ pub fn run_sequence(sequence: Sequence) {
     // setup voter according to sequence
     match sequence {
         Sequence::PositiveVote => {
-            data::set_explicit_value(&mut voter.a, true);
-            data::set_explicit_value(&mut voter.c, true);
+            voter.toggle_input_data("a");
+            voter.toggle_input_data("c");
 
-            receive_signal(&mut voter, "vote");
+            voter.receive_signal("vote");
         }
         Sequence::NegativeVote => {
-            data::set_explicit_value(&mut voter.a, true);
+            voter.toggle_input_data("a");
 
-            receive_signal(&mut voter, "vote");
+            voter.receive_signal("vote");
         }
         Sequence::VotedReset => {
-            data::set_explicit_value(&mut voter.a, true);
-            data::set_explicit_value(&mut voter.c, true);
+            voter.toggle_input_data("a");
+            voter.toggle_input_data("c");
 
-            receive_signal(&mut voter, "vote");
+            voter.receive_signal("vote");
         }
         Sequence::UnvotedReset => {
-            receive_signal(&mut voter, "reset");
+            voter.receive_signal("reset");
         }
     }
 
-    run_voter_until_stable(&mut voter);
+    voter.run_voter_until_stable();
 
     if matches!(sequence, Sequence::VotedReset) {
-        receive_signal(&mut voter, "reset");
-        run_voter_until_stable(&mut voter);
+        voter.receive_signal("reset");
+        voter.run_voter_until_stable();
     }
 }

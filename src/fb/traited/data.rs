@@ -1,5 +1,5 @@
 use super::{
-    data_type::DataType,
+    data_type::{self, DataType},
     direction::{Direction, In, Out},
 };
 
@@ -30,9 +30,7 @@ impl<T: DataType> Data<Out, T> {
     }
 }
 
-pub fn set_explicit_value<D: Direction, T: DataType>(
-    data: &mut Data<D, T>,
-    value: <T as DataType>::Inner,
-) {
-    data.value.set(value);
+pub fn toggle<D: Direction>(data: &mut Data<D, data_type::Bool>) {
+    let old = *data.value.get();
+    data.value.set(!old);
 }

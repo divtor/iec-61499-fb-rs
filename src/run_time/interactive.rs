@@ -1,15 +1,14 @@
 use std::io::Write;
 
-use crate::fb::{
-    self,
-    traited::voter::{invoke_ecc_once, receive_signal, run_voter_until_stable, toggle_input_data},
-};
+use crate::fb::traited::voter::Voter;
 
 pub fn simple_traited_runtime() {
-    let mut voter = fb::traited::voter::Voter::default();
+    let mut voter = Voter::default();
 
     loop {
+        println!("{voter}");
         print!("> ");
+
         std::io::stdout().flush().unwrap();
 
         let mut buf = String::new();
@@ -19,39 +18,36 @@ pub fn simple_traited_runtime() {
             continue;
         }
 
-        let input = buf.trim();
+        let buf = buf.trim();
 
-        if input.is_empty() {
+        if buf.is_empty() {
             continue;
         }
 
-        let mut cmd_parts = input.split_whitespace();
-        let cmd = cmd_parts.next().unwrap();
-        let args: Vec<&str> = cmd_parts.collect();
+        let mut cmd = buf.split_whitespace();
 
-        match cmd {
-            "help" => println!(
-                "Available commands: quit, run, step, receive_input_event <name>, toggle_input_data <name>"
-            ),
-            "run" => run_voter_until_stable(&mut voter),
-            "step" => invoke_ecc_once(&mut voter),
-            "receive_input_event" => {
-                if let Some(event) = args.first() {
-                    receive_signal(&mut voter, event);
+        match cmd.next().unwrap() {
+            "help" => {
+                println!(
+                    "Available commands: quit, run, step, rs <signal_name>, tid <input_data_name>"
+                );
+            }
+            "run" => voter.run_voter_until_stable(),
+            "step" => voter.invoke_ecc_once(),
+            "rs" => {
+                if let Some(event) = cmd.next() {
+                    voter.receive_signal(event);
                 }
             }
-            "toggle_input_data" => {
-                if let Some(data) = args.first() {
-                    toggle_input_data(&mut voter, data);
+            "tid" => {
+                if let Some(data) = cmd.next() {
+                    voter.toggle_input_data(data);
                 }
             }
             "quit" => {
                 break;
             }
-            _ => println!("Unknown command \"{cmd}\""),
+            unknown => println!("Unknown command \"{unknown}\""),
         }
-
-        println!("{voter:?}");
     }
 }
-

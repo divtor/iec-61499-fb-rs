@@ -10,13 +10,12 @@ pub struct Event<D: Direction> {
 }
 
 impl<D: Direction> Event<D> {
-    pub fn receive(&mut self) {
-        self.signal.set(true);
+    pub fn read(&self) -> bool {
+        self.signal.get()
     }
 }
 
 impl Event<In> {
-    // TODO: this seems false
     pub fn read_and_reset(&mut self) -> bool {
         let curr = self.signal.get();
 
@@ -24,10 +23,13 @@ impl Event<In> {
 
         curr
     }
+
+    pub fn receive(&mut self) {
+        self.signal.set(true);
+    }
 }
 
 impl Event<Out> {
-    // TODO: how to model sending in my context (when does it get set to "false" again)
     pub fn send(&mut self) {
         self.signal.set(true);
     }

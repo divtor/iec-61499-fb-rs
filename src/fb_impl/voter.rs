@@ -41,7 +41,7 @@ impl BasicFunctionBlock for Voter {
                 self.vote_algorithm();
 
                 self.voted.send();
-                self.write_output("voted");
+                self.publish_output("voted");
 
                 if *self.state.read() {
                     self.ecc = VoterState::VotedPos;
@@ -61,7 +61,7 @@ impl BasicFunctionBlock for Voter {
                 self.reset_algorithm();
 
                 self.ready.send();
-                self.write_output("ready");
+                self.publish_output("ready");
 
                 self.ecc = VoterState::Ready;
                 ecc_changed = true;
@@ -91,7 +91,7 @@ impl BasicFunctionBlock for Voter {
         }
     }
 
-    fn write_output(&mut self, out_event: &str) {
+    fn publish_output(&mut self, out_event: &str) {
         match out_event.to_lowercase().as_str() {
             "voted" | "ready" => {
                 // TODO: what does "make available" mean in this context?

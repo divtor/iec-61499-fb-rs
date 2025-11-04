@@ -1,7 +1,7 @@
 use clap::Parser;
 use iec_61499_fb_rs::{
     cli::args::{Args, Mode, Voter},
-    fb, run_time,
+    fb_impl, run_time,
 };
 
 fn main() {
@@ -13,10 +13,10 @@ fn main() {
     #[allow(unreachable_patterns)] // might be extended later
     match (args.voter, args.mode) {
         (Basic, Sequence) => {
-            fb::basic::run_sequence(args.sequence);
+            fb_impl::basic_voter::run_sequence(args.sequence);
         }
         (Traited, Sequence) => {
-            fb::traited::run_sequence(args.sequence);
+            fb_impl::voter::run_sequence(args.sequence);
         }
         (Traited, Interactive) => {
             run_time::interactive::simple_traited_runtime();

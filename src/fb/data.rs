@@ -30,6 +30,7 @@ impl<T: DataType> Data<Out, T> {
     }
 }
 
+/// Toggle the value of any `Data<In | Out, Bool>` instance.
 pub fn toggle<D: Direction>(data: &mut Data<D, data_type::Bool>) {
     let old = *data.value.get();
     data.value.set(!old);

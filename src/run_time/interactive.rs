@@ -1,6 +1,6 @@
 use std::io::Write;
 
-use crate::fb::traited::voter::Voter;
+use crate::{fb::bfb::BasicFunctionBlock, fb_impl::voter::Voter};
 
 pub fn simple_traited_runtime() {
     let mut voter = Voter::default();
@@ -32,8 +32,12 @@ pub fn simple_traited_runtime() {
                     "Available commands: quit, run, step, rs <signal_name>, tid <input_data_name>"
                 );
             }
-            "run" => voter.run_voter_until_stable(),
-            "step" => voter.invoke_ecc_once(),
+            "run" => {
+                voter.run_ecc();
+            }
+            "step" => {
+                _ = voter.invoke_ecc();
+            }
             "rs" => {
                 if let Some(event) = cmd.next() {
                     voter.receive_signal(event);

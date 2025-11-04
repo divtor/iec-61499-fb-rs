@@ -4,42 +4,18 @@
 use core::fmt;
 use std::fmt::Display;
 
-use crate::cli::{
-    args::Sequence,
-    output::{VoterInformation, create_voter_string},
+use crate::{
+    cli::{
+        args::Sequence,
+        output::{VoterInformation, create_voter_string},
+    },
+    fb_impl::voter_util::state::VoterState,
 };
 
 #[allow(dead_code)]
 #[derive(Debug, Default)]
-enum State {
-    #[default]
-    Ready,
-    Vote,
-    VotedPos,
-    Reset,
-}
-
-impl Display for State {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{self:?}")
-    }
-}
-
-impl State {
-    fn as_str(&self) -> &'static str {
-        match self {
-            State::Ready => "Ready",
-            State::Vote => "Vote",
-            State::VotedPos => "VotedPos",
-            State::Reset => "Reset",
-        }
-    }
-}
-
-#[allow(dead_code)]
-#[derive(Debug, Default)]
 pub struct Voter {
-    ecc_state: State,
+    ecc_state: VoterState,
 
     // Event Input
     ein_vote: bool,
@@ -58,38 +34,6 @@ pub struct Voter {
     dout_state: bool,
 }
 
-#[allow(clippy::from_over_into)]
-impl Into<VoterInformation> for &Voter {
-    fn into(self) -> VoterInformation {
-        VoterInformation {
-            ecc: self.ecc_state.as_str(),
-            vote: if self.ein_vote {
-                "RECEIVED"
-            } else {
-                "INACTIVE"
-            },
-            reset: if self.ein_reset {
-                "RECEIVED"
-            } else {
-                "INACTIVE"
-            },
-            voted: if self.eout_voted { "SENT" } else { "INACTIVE" },
-            ready: if self.eout_ready { "SENT" } else { "INACTIVE" },
-            a: if self.din_a { "TRUE" } else { "FALSE" },
-            b: if self.din_b { "TRUE" } else { "FALSE" },
-            c: if self.din_c { "TRUE" } else { "FALSE" },
-            state: if self.dout_state { "TRUE" } else { "FALSE" },
-        }
-    }
-}
-
-impl Display for Voter {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let buf = create_voter_string(self.into());
-        write!(f, "{buf}")
-    }
-}
-
 // ECC
 impl Voter {
     fn invoke_ecc(&mut self) -> bool {
@@ -99,36 +43,36 @@ impl Voter {
         self.eout_ready = false;
 
         match self.ecc_state {
-            State::Ready => {
+            VoterState::Ready => {
                 if self.ein_vote {
-                    self.ecc_state = State::Vote;
+                    self.ecc_state = VoterState::Vote;
                     state_changed = true;
                 }
             }
-            State::Vote => {
+            VoterState::Vote => {
                 self.vote_algorithm();
 
                 self.eout_voted = true;
 
                 if self.dout_state {
-                    self.ecc_state = State::VotedPos;
+                    self.ecc_state = VoterState::VotedPos;
                 } else {
-                    self.ecc_state = State::Ready;
+                    self.ecc_state = VoterState::Ready;
                 }
 
                 state_changed = true;
             }
-            State::VotedPos => {
+            VoterState::VotedPos => {
                 if self.ein_reset {
-                    self.ecc_state = State::Reset;
+                    self.ecc_state = VoterState::Reset;
                     state_changed = true;
                 }
             }
-            State::Reset => {
+            VoterState::Reset => {
                 self.reset_algorithm();
 
                 self.eout_ready = true;
-                self.ecc_state = State::Ready;
+                self.ecc_state = VoterState::Ready;
                 state_changed = true;
             }
         }
@@ -288,5 +232,38 @@ pub fn run_sequence(sequence: Sequence) {
 
             println!("Stable state after\n {voter}");
         }
+    }
+}
+
+// -- printing ------------------------------------------------------------------------------------
+#[allow(clippy::from_over_into)]
+impl Into<VoterInformation> for &Voter {
+    fn into(self) -> VoterInformation {
+        VoterInformation {
+            ecc: self.ecc_state.as_str(),
+            vote: if self.ein_vote {
+                "RECEIVED"
+            } else {
+                "INACTIVE"
+            },
+            reset: if self.ein_reset {
+                "RECEIVED"
+            } else {
+                "INACTIVE"
+            },
+            voted: if self.eout_voted { "SENT" } else { "INACTIVE" },
+            ready: if self.eout_ready { "SENT" } else { "INACTIVE" },
+            a: if self.din_a { "TRUE" } else { "FALSE" },
+            b: if self.din_b { "TRUE" } else { "FALSE" },
+            c: if self.din_c { "TRUE" } else { "FALSE" },
+            state: if self.dout_state { "TRUE" } else { "FALSE" },
+        }
+    }
+}
+
+impl Display for Voter {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let buf = create_voter_string(self.into());
+        write!(f, "{buf}")
     }
 }

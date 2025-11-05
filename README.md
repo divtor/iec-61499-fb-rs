@@ -1,8 +1,8 @@
 # iec-61499-fb-rs
-Implementation of a basic function block according to the IEC 61499 standard.
+Implementation of `BasicFunctionBlock`s according to the IEC 61499 standard.
 
 ## The `Voter` function block
-A simple basic function block which showcases the encapsulated nature of the standard, as well as how to handle internal state.
+Simple function block which will be used to showcase the standard, as well as how to handle internal state.
 
 ### Static interface declaration
 ```
@@ -27,11 +27,14 @@ EVENT -----|Reset            Ready|---x- EVENT
 TBD
 
 ## Goals
-- [ ] evaluate different approaches to implement IEC 61499 based function blocks in Rust
-- [ ] implement a basic function block with voting functionality
-- [ ] (If there is time) research an implement how to convert the implementation to WebAssembly
-- [ ] (Optionally) research how to generate valid Rust function blocks from structured text representations of function blocks
+- [x] basic implementation of the voter function block
+- [ ] proposal of `BasicFunctionBlock` implementation
+- [ ] proposal of `Connection` implementation
+- [ ] (?) convert `BasicFunctionBlock`s to `WebAssembly`
+- [ ] (??) generate `BasicFunctionBlock`s from structured text
 
 ## Sources
-- Wikipedia: [IEC 61499](https://en.wikipedia.org/wiki/IEC_61499)
+
+### IEC 61499
+- [Wikipedia](https://en.wikipedia.org/wiki/IEC_61499)
 - [Modelling Control Systems Using IEC 61499 2nd Edition](https://doi.org/10.1049/PBCE095E) by Alois Zoitl & Robert Lewis

@@ -1,14 +1,20 @@
-use crate::fb::direction::{In, Out};
+use std::{cell::RefCell, rc::Rc};
+
+use crate::{
+    fb::direction::{In, Out},
+    fb_impl::voter::Fb,
+};
 
 use port::Port;
 
+/// uses ports that store the index of the function blocks to link
 #[allow(dead_code)]
-pub struct Conn {
+pub struct ExternalConn {
     pub from: Port<Out>,
     pub to: Port<In>,
 }
 
-impl Conn {
+impl ExternalConn {
     pub fn new(from: (usize, &'static str), to: (usize, &'static str)) -> Self {
         Self {
             from: Port::new(from.0, from.1),
@@ -17,7 +23,7 @@ impl Conn {
     }
 }
 
-pub struct FannedConn {
+struct FannedConn {
     pub from: Port<Out>,
     pub to: Vec<Port<In>>,
 }
@@ -35,6 +41,12 @@ impl FannedConn {
             to: tos,
         }
     }
+}
+
+/// uses reference counter pointers of function blocks to link
+pub struct InternalConn {
+    pub from: (Rc<RefCell<dyn Fb>>, &'static str),
+    pub to: (Rc<RefCell<dyn Fb>>, &'static str),
 }
 
 pub mod port {

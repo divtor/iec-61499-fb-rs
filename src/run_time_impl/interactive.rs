@@ -1,6 +1,6 @@
 use std::io::Write;
 
-use crate::{fb::bfb::BasicFunctionBlock, fb_impl::voter::Voter};
+use crate::fb_impl::traited_voter::Voter;
 
 pub fn simple_traited_runtime() {
     let mut voter = Voter::default();

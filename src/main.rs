@@ -1,7 +1,7 @@
 use clap::Parser;
 use iec_61499_fb_rs::{
     cli::args::{Args, Mode, Voter},
-    fb_impl, run_time,
+    fb_impl, run_time_impl,
 };
 
 fn main() {
@@ -16,10 +16,10 @@ fn main() {
             fb_impl::basic_voter::run_sequence(args.sequence);
         }
         (Traited, Sequence) => {
-            fb_impl::voter::run_sequence(args.sequence);
+            fb_impl::traited_voter::run_sequence(args.sequence);
         }
         (Traited, Interactive) => {
-            run_time::interactive::simple_traited_runtime();
+            run_time_impl::interactive::simple_traited_runtime();
         }
         (Basic | Traited, mode) => {
             println!("mode \"{mode}\" is not implemented yet!");

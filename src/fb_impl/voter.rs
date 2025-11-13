@@ -1,104 +1,41 @@
-use core::fmt;
+//! Builds upon the `traited_voter` concept, but
+//! more polished and designed with communication
+//! between function blocks in mind.
 
 use crate::{
-    cli::{self, args::Sequence, output::VoterInformation},
+    cli,
     fb::{
-        bfb::BasicFunctionBlock,
-        data::{Data, toggle},
-        data_type::Bool,
+        data::{Data, comm::CommunicationData, ty::Bool},
         direction::{In, Out},
-        event::Event,
+        event::{Event, ty::Signal},
     },
     fb_impl::voter_util::state::VoterState,
 };
 
-#[derive(Clone, Debug, Default)]
+pub trait Fb {
+    fn receive_event(&mut self, event: &str);
+    fn send_event(&mut self, event: &str);
+    fn active_in_event(&self) -> Option<&'static str>;
+    fn active_out_event(&self) -> Option<&'static str>;
+    fn event_associations(&self, event: &str) -> Vec<&'static str>;
+    fn read_output(&self, data: &str) -> &CommunicationData;
+    fn write_input(&mut self, data: &str, value: &CommunicationData);
+    fn invoke_ecc(&mut self) -> bool;
+}
+
 #[allow(dead_code)]
 pub struct Voter {
+    instance_name: &'static str,
     ecc: VoterState,
-    vote: Event<In>,
-    reset: Event<In>,
-    voted: Event<Out>,
-    ready: Event<Out>,
+    vote: Event<In, Signal>,
+    reset: Event<In, Signal>,
+    voted: Event<Out, Signal>,
+    ready: Event<Out, Signal>,
     a: Data<In, Bool>,
     b: Data<In, Bool>,
     c: Data<In, Bool>,
     state: Data<Out, Bool>,
-}
-
-impl BasicFunctionBlock for Voter {
-    fn invoke_ecc(&mut self) -> bool {
-        let mut ecc_changed = false;
-
-        match self.ecc {
-            VoterState::Ready => {
-                if self.vote.read_and_reset() {
-                    self.ecc = VoterState::Vote;
-                    ecc_changed = true;
-                }
-            }
-            VoterState::Vote => {
-                self.vote_algorithm();
-
-                self.voted.send();
-                self.publish_output("voted");
-
-                if *self.state.read() {
-                    self.ecc = VoterState::VotedPos;
-                } else {
-                    self.ecc = VoterState::Ready;
-                }
-
-                ecc_changed = true;
-            }
-            VoterState::VotedPos => {
-                if self.reset.read_and_reset() {
-                    self.ecc = VoterState::Reset;
-                    ecc_changed = true;
-                }
-            }
-            VoterState::Reset => {
-                self.reset_algorithm();
-
-                self.ready.send();
-                self.publish_output("ready");
-
-                self.ecc = VoterState::Ready;
-                ecc_changed = true;
-            }
-        }
-
-        ecc_changed
-    }
-
-    fn run_ecc(&mut self) {
-        let mut not_stable = true;
-
-        while not_stable {
-            not_stable = self.invoke_ecc();
-        }
-    }
-
-    fn update_input(&mut self, in_event: &str) {
-        match in_event.to_lowercase().as_str() {
-            "vote" => {
-                self.a.update();
-                self.b.update();
-                self.c.update();
-            }
-            "reset" => (),
-            _ => println!("unkown signal \"{in_event}\""),
-        }
-    }
-
-    fn publish_output(&mut self, out_event: &str) {
-        match out_event.to_lowercase().as_str() {
-            "voted" | "ready" => {
-                // TODO: what does "make available" mean in this context?
-            }
-            _ => println!("unkown signal \"{out_event}\""),
-        }
-    }
+    state_buf: CommunicationData,
 }
 
 impl Voter {
@@ -120,77 +57,132 @@ impl Voter {
     }
 }
 
-// Prototyping methods (not sure if these belong here)
-impl Voter {
-    pub fn receive_signal(&mut self, signal: &str) {
-        if self.vote.read() || self.reset.read() {
-            println!("there is already a different signal active");
-            return;
+impl Fb for Voter {
+    fn invoke_ecc(&mut self) -> bool {
+        let mut ecc_changed = false;
+
+        match self.ecc {
+            VoterState::Ready => {
+                if self.vote.read_and_reset() {
+                    self.ecc = VoterState::Vote;
+                    ecc_changed = true;
+                }
+            }
+            VoterState::Vote => {
+                self.vote_algorithm();
+
+                self.voted.send();
+
+                if *self.state.read() {
+                    self.ecc = VoterState::VotedPos;
+                } else {
+                    self.ecc = VoterState::Ready;
+                }
+
+                ecc_changed = true;
+            }
+            VoterState::VotedPos => {
+                if self.reset.read_and_reset() {
+                    self.ecc = VoterState::Reset;
+                    ecc_changed = true;
+                }
+            }
+            VoterState::Reset => {
+                self.reset_algorithm();
+
+                self.ready.send();
+
+                self.ecc = VoterState::Ready;
+                ecc_changed = true;
+            }
         }
 
-        match signal.to_lowercase().as_str() {
+        ecc_changed
+    }
+
+    fn receive_event(&mut self, event: &str) {
+        match event {
             "vote" => self.vote.receive(),
             "reset" => self.reset.receive(),
-            _ => println!("unkown signal \"{signal}\""),
-        }
-
-        self.update_input(signal);
-    }
-
-    pub fn toggle_input_data(&mut self, data: &str) {
-        match data.to_lowercase().as_str() {
-            "a" => toggle(&mut self.a),
-            "b" => toggle(&mut self.b),
-            "c" => toggle(&mut self.c),
-            _ => println!("unkown input data \"{data}\""),
+            _ => panic!("unknown event {event}"), // return Error later
         }
     }
 
-    pub fn invoke_ecc_once(&mut self) {
-        self.invoke_ecc();
-    }
-}
-
-pub fn run_sequence(sequence: Sequence) {
-    let mut voter = Voter::default();
-
-    // setup voter according to sequence
-    match sequence {
-        Sequence::PositiveVote => {
-            voter.toggle_input_data("a");
-            voter.toggle_input_data("c");
-
-            voter.receive_signal("vote");
-        }
-        Sequence::NegativeVote => {
-            voter.toggle_input_data("a");
-
-            voter.receive_signal("vote");
-        }
-        Sequence::VotedReset => {
-            voter.toggle_input_data("a");
-            voter.toggle_input_data("c");
-
-            voter.receive_signal("vote");
-        }
-        Sequence::UnvotedReset => {
-            voter.receive_signal("reset");
+    fn send_event(&mut self, event: &str) {
+        match event {
+            "voted" => {
+                self.voted.send();
+                self.state_buf = CommunicationData::Bool(*self.state.read());
+            }
+            "ready" => self.ready.send(),
+            _ => panic!("unknown event {event}"), // return Error later
         }
     }
 
-    voter.run_ecc();
+    fn active_in_event(&self) -> Option<&'static str> {
+        let mut event = None;
 
-    if matches!(sequence, Sequence::VotedReset) {
-        voter.receive_signal("reset");
-        voter.run_ecc();
+        if self.vote.read() {
+            event = Some("vote");
+        }
+
+        if self.reset.read() {
+            event = Some("reset");
+        }
+
+        event
+    }
+
+    fn active_out_event(&self) -> Option<&'static str> {
+        let mut event = None;
+
+        if self.voted.read() {
+            event = Some("voted");
+        }
+
+        if self.ready.read() {
+            event = Some("ready");
+        }
+
+        event
+    }
+
+    fn event_associations(&self, event: &str) -> Vec<&'static str> {
+        match event {
+            "vote" | "reset" => vec!["a", "b", "c"],
+            "voted" | "ready" => vec!["state"],
+            _ => panic!("unknown event {event}"), // return Error later
+        }
+    }
+
+    fn read_output(&self, data: &str) -> &CommunicationData {
+        match data {
+            "state" => &self.state_buf,
+            _ => panic!("unknown data {data}"),
+        }
+    }
+
+    fn write_input(&mut self, data: &str, value: &CommunicationData) {
+        match (data, value) {
+            ("a", CommunicationData::Bool(v)) => {
+                self.a.update(*v);
+            }
+            ("b", CommunicationData::Bool(v)) => {
+                self.b.update(*v);
+            }
+            ("c", CommunicationData::Bool(v)) => {
+                self.c.update(*v);
+            }
+            _ => panic!("unknown data {data} or invalid communication data variant {value:?}"),
+        }
     }
 }
 
 // -- printing ------------------------------------------------------------------------------------
 #[allow(clippy::from_over_into)]
-impl Into<VoterInformation> for &Voter {
-    fn into(self) -> VoterInformation {
-        VoterInformation {
+impl Into<cli::output::VoterInformation> for &Voter {
+    fn into(self) -> cli::output::VoterInformation {
+        cli::output::VoterInformation {
             ecc: self.ecc.as_str(),
             vote: if self.vote.read() {
                 "RECEIVED"
@@ -220,7 +212,7 @@ impl Into<VoterInformation> for &Voter {
     }
 }
 
-impl fmt::Display for Voter {
+impl std::fmt::Display for Voter {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let buf = cli::output::create_voter_string(self.into());
         write!(f, "{buf}")

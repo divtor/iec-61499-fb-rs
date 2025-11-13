@@ -1,5 +1,5 @@
-//! Basic implementation of the `Voter` function block. Here event signals are
-//! represented as booleans.
+//! Basic implementation of the `Voter` function block.
+//! Here event signals are represented as booleans.
 
 use core::fmt;
 use std::fmt::Display;

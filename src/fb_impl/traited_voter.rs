@@ -44,7 +44,7 @@ impl Voter {
 
                 self.voted.send();
 
-                if *self.state.read() {
+                if self.state.read() {
                     self.ecc = VoterState::VotedPos;
                 } else {
                     self.ecc = VoterState::Ready;
@@ -84,9 +84,9 @@ impl Voter {
     #[allow(clippy::nonminimal_bool)]
     /// the vote algorithm implemented according to the specification
     fn vote_algorithm(&mut self) {
-        let a = *self.a.read();
-        let b = *self.b.read();
-        let c = *self.c.read();
+        let a = self.a.read();
+        let b = self.b.read();
+        let c = self.c.read();
 
         let vote = (a && b) || (b && c) || (a && c);
 
@@ -185,10 +185,10 @@ impl Into<VoterInformation> for &Voter {
             } else {
                 "INACTIVE"
             },
-            a: if *self.a.read() { "TRUE" } else { "FALSE" },
-            b: if *self.b.read() { "TRUE" } else { "FALSE" },
-            c: if *self.c.read() { "TRUE" } else { "FALSE" },
-            state: if *self.state.read() { "TRUE" } else { "FALSE" },
+            a: if self.a.read() { "TRUE" } else { "FALSE" },
+            b: if self.b.read() { "TRUE" } else { "FALSE" },
+            c: if self.c.read() { "TRUE" } else { "FALSE" },
+            state: if self.state.read() { "TRUE" } else { "FALSE" },
         }
     }
 }

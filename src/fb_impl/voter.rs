@@ -5,23 +5,13 @@
 use crate::{
     cli,
     fb::{
+        Fb,
         data::{Data, comm::CommunicationData, ty::Bool},
         direction::{In, Out},
         event::{Event, ty::Signal},
     },
     fb_impl::voter_util::state::VoterState,
 };
-
-pub trait Fb {
-    fn receive_event(&mut self, event: &str);
-    fn send_event(&mut self, event: &str);
-    fn active_in_event(&self) -> Option<&'static str>;
-    fn active_out_event(&self) -> Option<&'static str>;
-    fn event_associations(&self, event: &str) -> Vec<&'static str>;
-    fn read_output(&self, data: &str) -> &CommunicationData;
-    fn write_input(&mut self, data: &str, value: &CommunicationData);
-    fn invoke_ecc(&mut self) -> bool;
-}
 
 #[allow(dead_code)]
 pub struct Voter {
@@ -42,9 +32,9 @@ impl Voter {
     #[allow(clippy::nonminimal_bool)]
     /// the vote algorithm implemented according to the specification
     fn vote_algorithm(&mut self) {
-        let a = *self.a.read();
-        let b = *self.b.read();
-        let c = *self.c.read();
+        let a = self.a.read();
+        let b = self.b.read();
+        let c = self.c.read();
 
         let vote = (a && b) || (b && c) || (a && c);
 
@@ -58,6 +48,10 @@ impl Voter {
 }
 
 impl Fb for Voter {
+    fn instance_name(&self) -> &'static str {
+        self.instance_name
+    }
+
     fn invoke_ecc(&mut self) -> bool {
         let mut ecc_changed = false;
 
@@ -73,7 +67,7 @@ impl Fb for Voter {
 
                 self.voted.send();
 
-                if *self.state.read() {
+                if self.state.read() {
                     self.ecc = VoterState::VotedPos;
                 } else {
                     self.ecc = VoterState::Ready;
@@ -112,7 +106,7 @@ impl Fb for Voter {
         match event {
             "voted" => {
                 self.voted.send();
-                self.state_buf = CommunicationData::Bool(*self.state.read());
+                self.state_buf = CommunicationData::Bool(self.state.read());
             }
             "ready" => self.ready.send(),
             _ => panic!("unknown event {event}"), // return Error later
@@ -155,9 +149,9 @@ impl Fb for Voter {
         }
     }
 
-    fn read_output(&self, data: &str) -> &CommunicationData {
+    fn read_output(&self, data: &str) -> CommunicationData {
         match data {
-            "state" => &self.state_buf,
+            "state" => self.state.read_comm(),
             _ => panic!("unknown data {data}"),
         }
     }
@@ -204,10 +198,10 @@ impl Into<cli::output::VoterInformation> for &Voter {
             } else {
                 "INACTIVE"
             },
-            a: if *self.a.read() { "TRUE" } else { "FALSE" },
-            b: if *self.b.read() { "TRUE" } else { "FALSE" },
-            c: if *self.c.read() { "TRUE" } else { "FALSE" },
-            state: if *self.state.read() { "TRUE" } else { "FALSE" },
+            a: if self.a.read() { "TRUE" } else { "FALSE" },
+            b: if self.b.read() { "TRUE" } else { "FALSE" },
+            c: if self.c.read() { "TRUE" } else { "FALSE" },
+            state: if self.state.read() { "TRUE" } else { "FALSE" },
         }
     }
 }

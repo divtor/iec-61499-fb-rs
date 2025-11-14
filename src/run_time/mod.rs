@@ -1,63 +1,99 @@
-use std::{cell::RefCell, rc::Rc};
+use std::collections::HashSet;
 
 use crate::{
-    fb::direction::{In, Out},
-    fb_impl::voter::Fb,
-    run_time::connection::{ExternalConn, InternalConn, port::Port},
+    fb::{
+        FbRef,
+        data::comm::CommunicationData,
+        direction::{In, Out},
+    },
+    run_time::connection::{Conn, port::Port},
 };
 
 pub mod connection;
 
 #[derive(Default)]
 pub struct RunTime {
-    pub id_connections: Vec<ExternalConn>,
-    pub reference_connections: Vec<InternalConn>,
-    pub fbs: Vec<Rc<RefCell<dyn Fb>>>,
+    pub conns: Vec<Conn>,
+    pub fb_refs: Vec<FbRef>,
 }
 
 #[allow(dead_code)]
 impl RunTime {
-    fn create_reference_connection(
-        &mut self,
-        from: (usize, &'static str),
-        to: (usize, &'static str),
-    ) {
-        let conn = InternalConn {
-            from: (self.fbs[from.0].clone(), from.1),
-            to: (self.fbs[to.0].clone(), to.1),
-        };
+    pub fn connect(&mut self, from: (usize, &'static str), to: (usize, &'static str)) {
+        let from = Port::<Out>::new(self.fb_refs[from.0].clone(), from.1);
+        let to = Port::<In>::new(self.fb_refs[to.0].clone(), to.1);
+        let buf = CommunicationData::Unassigned;
 
-        self.reference_connections.push(conn);
+        let conn = Conn { from, to, buf };
+
+        self.conns.push(conn);
     }
 
-    fn create_id_connection(&mut self, from: (usize, &'static str), to: (usize, &'static str)) {
-        let conn = ExternalConn {
-            from: Port::<Out>::new(from.0, from.1),
-            to: Port::<In>::new(to.0, to.1),
-        };
+    pub fn fetching_conns(&self) -> Vec<usize> {
+        let mut conn_ids = HashSet::new();
 
-        self.id_connections.push(conn);
+        for fb_ref in self.fb_refs.iter() {
+            let fb = fb_ref.borrow();
+            let name = fb.instance_name();
+
+            if let Some(e) = fb.active_out_event() {
+                let fields = fb.event_associations(e);
+
+                if fields.is_empty() {
+                    continue;
+                }
+
+                for (conn_id, conn) in self.conns.iter().enumerate() {
+                    let same_name = conn.from.fb_ref.borrow().instance_name() == name;
+                    let relevant_field = fields.contains(&conn.from.field);
+
+                    if same_name && relevant_field {
+                        conn_ids.insert(conn_id);
+                    }
+                }
+            }
+        }
+
+        conn_ids.into_iter().collect()
     }
 
-    fn send_via_reference(&self, conn_idx: usize) {
-        let conn = &self.reference_connections[conn_idx];
+    pub fn sending_conns(&self) -> Vec<usize> {
+        let mut conn_ids = HashSet::new();
 
-        let (from_fb, from_field) = &conn.from;
-        let (to_fb, to_field) = &conn.to;
+        for fb_ref in self.fb_refs.iter() {
+            let fb = fb_ref.borrow();
+            let name = fb.instance_name();
 
-        let binding = from_fb.borrow();
-        let data = binding.read_output(from_field);
-        to_fb.borrow_mut().write_input(to_field, data);
+            if let Some(e) = fb.active_in_event() {
+                let fields = fb.event_associations(e);
+
+                if fields.is_empty() {
+                    continue;
+                }
+
+                for (conn_id, conn) in self.conns.iter().enumerate() {
+                    let same_name = conn.to.fb_ref.borrow().instance_name() == name;
+                    let relevant_field = fields.contains(&conn.to.field);
+
+                    if same_name && relevant_field {
+                        conn_ids.insert(conn_id);
+                    }
+                }
+            }
+        }
+
+        conn_ids.into_iter().collect()
     }
 
-    fn send_via_id(&self, conn_idx: usize) {
-        let conn = &self.id_connections[conn_idx];
+    pub fn fetch_all(&mut self) {
+        for conn_id in self.fetching_conns() {
+            self.conns[conn_id].fetch();
+        }
+    }
 
-        let from_fb = &self.fbs[conn.from.function_block_id];
-        let to_fb = &self.fbs[conn.to.function_block_id];
-
-        let binding = from_fb.borrow();
-        let data = binding.read_output(conn.from.field_name);
-        to_fb.borrow_mut().write_input(conn.to.field_name, data);
+    pub fn send_all(&self) {
+        for conn_id in self.sending_conns() {
+            self.conns[conn_id].send();
+        }
     }
 }

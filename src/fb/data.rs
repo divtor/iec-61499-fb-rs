@@ -1,5 +1,7 @@
 //! internal data fields in function blocks
 
+use crate::fb::data::comm::CommunicationData;
+
 use super::direction::{Direction, In, Out};
 
 use ty::DataType;
@@ -12,8 +14,12 @@ pub struct Data<D: Direction, T: ty::DataType> {
 }
 
 impl<D: Direction, T: ty::DataType> Data<D, T> {
-    pub fn read(&self) -> &<T as ty::DataType>::Inner {
+    pub fn read(&self) -> <T as ty::DataType>::Inner {
         self.value.get()
+    }
+
+    pub fn read_comm(&self) -> CommunicationData {
+        self.value.get_comm()
     }
 }
 
@@ -30,7 +36,7 @@ impl<T: ty::DataType> Data<Out, T> {
 }
 
 pub fn toggle<D: Direction>(data: &mut Data<D, ty::Bool>) {
-    let old = *data.value.get();
+    let old = data.value.get();
     data.value.set(!old);
 }
 
@@ -71,8 +77,10 @@ pub mod comm {
 pub mod ty {
     use std::time::Duration;
 
+    use crate::fb::data::comm::CommunicationData;
+
     /// `IEC 61131-3` data type markers
-    pub enum DataTypeMarker {
+    pub enum DataTypeKind {
         SInt,
         Int,
         DInt,
@@ -100,8 +108,9 @@ pub mod ty {
     pub trait DataType {
         type Inner;
 
-        fn kind(&self) -> DataTypeMarker;
-        fn get(&self) -> &Self::Inner;
+        fn kind(&self) -> DataTypeKind;
+        fn get(&self) -> Self::Inner;
+        fn get_comm(&self) -> CommunicationData;
         fn set(&mut self, value: Self::Inner) -> ();
     }
 
@@ -112,12 +121,16 @@ pub mod ty {
             impl DataType for $name {
                 type Inner = $inner;
 
-                fn kind(&self) -> DataTypeMarker {
-                    DataTypeMarker::$name
+                fn kind(&self) -> DataTypeKind {
+                    DataTypeKind::$name
                 }
 
-                fn get(&self) -> &Self::Inner {
-                    &self.data
+                fn get(&self) -> Self::Inner {
+                    self.data
+                }
+
+                fn get_comm(&self) -> CommunicationData {
+                    CommunicationData::$name(self.data)
                 }
 
                 fn set(&mut self, value: Self::Inner) {
@@ -195,33 +208,128 @@ pub mod ty {
 
     #[derive(Clone, Debug, Default)]
     pub struct Date {
-        data: Vec<u8>, // NOTE: change this to custom implementation, use a "string" for now
+        data: Vec<u8>,
     }
-    impl_data_type!(Date, Vec<u8>);
+
+    impl DataType for Date {
+        type Inner = Vec<u8>;
+
+        fn kind(&self) -> DataTypeKind {
+            DataTypeKind::Date
+        }
+
+        fn get(&self) -> Self::Inner {
+            self.data.clone()
+        }
+
+        fn get_comm(&self) -> CommunicationData {
+            CommunicationData::Date(self.data.clone())
+        }
+
+        fn set(&mut self, value: Self::Inner) {
+            self.data = value;
+        }
+    }
 
     #[derive(Clone, Debug, Default)]
     pub struct TimeOfDay {
-        data: Vec<u8>, // NOTE: change this to custom implementation, use a "string" for now
+        data: Vec<u8>,
     }
-    impl_data_type!(TimeOfDay, Vec<u8>);
+
+    impl DataType for TimeOfDay {
+        type Inner = Vec<u8>;
+
+        fn kind(&self) -> DataTypeKind {
+            DataTypeKind::TimeOfDay
+        }
+
+        fn get(&self) -> Self::Inner {
+            self.data.clone()
+        }
+
+        fn get_comm(&self) -> CommunicationData {
+            CommunicationData::TimeOfDay(self.data.clone())
+        }
+
+        fn set(&mut self, value: Self::Inner) {
+            self.data = value;
+        }
+    }
 
     #[derive(Clone, Debug, Default)]
     pub struct DateTime {
-        data: Vec<u8>, // NOTE: change this to custom implementation, use a "string" for now
+        data: Vec<u8>,
     }
-    impl_data_type!(DateTime, Vec<u8>);
+
+    impl DataType for DateTime {
+        type Inner = Vec<u8>;
+
+        fn kind(&self) -> DataTypeKind {
+            DataTypeKind::DateTime
+        }
+
+        fn get(&self) -> Self::Inner {
+            self.data.clone()
+        }
+
+        fn get_comm(&self) -> CommunicationData {
+            CommunicationData::DateTime(self.data.clone())
+        }
+
+        fn set(&mut self, value: Self::Inner) {
+            self.data = value;
+        }
+    }
 
     #[derive(Clone, Debug, Default)]
     pub struct String {
         data: Vec<u8>,
     }
-    impl_data_type!(String, Vec<u8>);
+
+    impl DataType for String {
+        type Inner = Vec<u8>;
+
+        fn kind(&self) -> DataTypeKind {
+            DataTypeKind::String
+        }
+
+        fn get(&self) -> Self::Inner {
+            self.data.clone()
+        }
+
+        fn get_comm(&self) -> CommunicationData {
+            CommunicationData::String(self.data.clone())
+        }
+
+        fn set(&mut self, value: Self::Inner) {
+            self.data = value;
+        }
+    }
 
     #[derive(Clone, Debug, Default)]
     pub struct WString {
         data: Vec<u16>,
     }
-    impl_data_type!(WString, Vec<u16>);
+
+    impl DataType for WString {
+        type Inner = Vec<u16>;
+
+        fn kind(&self) -> DataTypeKind {
+            DataTypeKind::WString
+        }
+
+        fn get(&self) -> Self::Inner {
+            self.data.clone()
+        }
+
+        fn get_comm(&self) -> CommunicationData {
+            CommunicationData::WString(self.data.clone())
+        }
+
+        fn set(&mut self, value: Self::Inner) {
+            self.data = value;
+        }
+    }
 
     #[derive(Clone, Debug, Default)]
     pub struct Bool {

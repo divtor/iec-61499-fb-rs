@@ -13,13 +13,16 @@ fn main() {
     #[allow(unreachable_patterns)] // might be extended later
     match (args.voter, args.mode) {
         (Basic, Sequence) => {
-            fb_impl::basic_voter::run_sequence(args.sequence);
+            fb_impl::voter_basic::run_sequence(args.sequence);
         }
         (Traited, Sequence) => {
-            fb_impl::traited_voter::run_sequence(args.sequence);
+            fb_impl::voter_typed::run_sequence(args.sequence);
         }
         (Traited, Interactive) => {
             run_time_impl::interactive::simple_traited_runtime();
+        }
+        (Runtime, Test) => {
+            run_time_impl::test_connections();
         }
         (Basic | Traited, mode) => {
             println!("mode \"{mode}\" is not implemented yet!");

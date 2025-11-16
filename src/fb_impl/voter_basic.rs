@@ -7,7 +7,7 @@ use std::fmt::Display;
 use crate::{
     cli::{
         args::Sequence,
-        output::{VoterInformation, create_voter_string},
+        output::{VoterInformation, voter_str},
     },
     fb_impl::voter_util::state::VoterState,
 };
@@ -263,7 +263,7 @@ impl Into<VoterInformation> for &Voter {
 
 impl Display for Voter {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let buf = create_voter_string(self.into());
+        let buf = voter_str(self.into());
         write!(f, "{buf}")
     }
 }

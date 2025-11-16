@@ -1,4 +1,4 @@
-pub mod basic_voter;
-pub mod traited_voter;
-pub mod voter;
+pub mod voter_basic;
+pub mod voter_dynamic;
+pub mod voter_typed;
 pub mod voter_util;

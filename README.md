@@ -1,5 +1,5 @@
 # iec-61499-fb-rs
-Implementation of `BasicFunctionBlock`s according to the IEC 61499 standard.
+Conceptual implementation of basic function block types according to the `IEC 61499` standard.
 
 ## The `Voter` function block
 Simple function block which will be used to showcase the standard, as well as how to handle internal state.
@@ -23,15 +23,36 @@ EVENT -----|Reset            Ready|---x- EVENT
            +----------------------+
 ```
 
-### Dynamic interface behaivour
-TBD
+### Encapsulated functionality
+
+#### Vote Algorithm
+```
+ALGORITHM VoteAlg IN ST:
+    State := (A AND B) OR (A AND C) OR (B AND C);
+END_ALGORITHM
+```
+
+#### Reset Algorithm
+```
+ALGORITHM ResetAlg IN ST:
+    State := FALSE;
+END_ALGORITHM
+```
 
 ## Goals
 - [x] basic implementation of the voter function block
-- [ ] proposal of `BasicFunctionBlock` implementation
-- [ ] proposal of `Connection` implementation
-- [ ] (?) convert `BasicFunctionBlock`s to `WebAssembly`
-- [ ] (??) generate `BasicFunctionBlock`s from structured text
+- [x] concept of function block handling (see `Fb` trait) 
+- [x] concept of `Event` and `Data` connections
+- [x] basic `Runtime` to test data and event propergation
+- [ ] (?) ensure correct function block execution control handling (requires non-basic `Runtime` and adjustments for `Fb`)
+- [ ] (??) convert `Fb`s to `WebAssembly`
+- [ ] (??) generate `Fb`s from structured text
+
+## Non-Goals
+- Implementing a fully featured `IEC 61499` solution for basic function block types
+- Composite function block types
+- Service interface function block types
+    - by extension: supporting hardware communication
 
 ## Sources
 

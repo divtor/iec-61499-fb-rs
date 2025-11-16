@@ -6,14 +6,16 @@ use crate::{
     cli,
     fb::{
         Fb,
-        data::{Data, comm::CommunicationData, ty::Bool},
+        data::{Data, comm::DataBuffer, ty::Bool},
         direction::{In, Out},
         event::{Event, ty::Signal},
     },
     fb_impl::voter_util::state::VoterState,
 };
 
+// TODO: make instance_name into a String -> allows for hotloading down the line
 #[allow(dead_code)]
+#[derive(Default, Debug)]
 pub struct Voter {
     instance_name: &'static str,
     ecc: VoterState,
@@ -25,7 +27,15 @@ pub struct Voter {
     b: Data<In, Bool>,
     c: Data<In, Bool>,
     state: Data<Out, Bool>,
-    state_buf: CommunicationData,
+}
+
+impl Voter {
+    pub fn new(instance_name: &'static str) -> Self {
+        Self {
+            instance_name,
+            ..Default::default()
+        }
+    }
 }
 
 impl Voter {
@@ -48,18 +58,22 @@ impl Voter {
 }
 
 impl Fb for Voter {
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
     fn instance_name(&self) -> &'static str {
         self.instance_name
     }
 
-    fn invoke_ecc(&mut self) -> bool {
-        let mut ecc_changed = false;
+    fn invoke_execution_control(&mut self) -> bool {
+        let mut unstable = false;
 
         match self.ecc {
             VoterState::Ready => {
                 if self.vote.read_and_reset() {
                     self.ecc = VoterState::Vote;
-                    ecc_changed = true;
+                    unstable = true;
                 }
             }
             VoterState::Vote => {
@@ -73,12 +87,12 @@ impl Fb for Voter {
                     self.ecc = VoterState::Ready;
                 }
 
-                ecc_changed = true;
+                unstable = true;
             }
             VoterState::VotedPos => {
                 if self.reset.read_and_reset() {
                     self.ecc = VoterState::Reset;
-                    ecc_changed = true;
+                    unstable = true;
                 }
             }
             VoterState::Reset => {
@@ -87,28 +101,17 @@ impl Fb for Voter {
                 self.ready.send();
 
                 self.ecc = VoterState::Ready;
-                ecc_changed = true;
+                unstable = true;
             }
         }
 
-        ecc_changed
+        unstable
     }
 
     fn receive_event(&mut self, event: &str) {
         match event {
             "vote" => self.vote.receive(),
             "reset" => self.reset.receive(),
-            _ => panic!("unknown event {event}"), // return Error later
-        }
-    }
-
-    fn send_event(&mut self, event: &str) {
-        match event {
-            "voted" => {
-                self.voted.send();
-                self.state_buf = CommunicationData::Bool(self.state.read());
-            }
-            "ready" => self.ready.send(),
             _ => panic!("unknown event {event}"), // return Error later
         }
     }
@@ -141,6 +144,11 @@ impl Fb for Voter {
         event
     }
 
+    fn clear_out_event(&mut self) {
+        self.voted.reset();
+        self.ready.reset();
+    }
+
     fn event_associations(&self, event: &str) -> Vec<&'static str> {
         match event {
             "vote" | "reset" => vec!["a", "b", "c"],
@@ -149,22 +157,22 @@ impl Fb for Voter {
         }
     }
 
-    fn read_output(&self, data: &str) -> CommunicationData {
+    fn read_out_data(&self, data: &str) -> DataBuffer {
         match data {
-            "state" => self.state.read_comm(),
+            "state" => self.state.as_buf(),
             _ => panic!("unknown data {data}"),
         }
     }
 
-    fn write_input(&mut self, data: &str, value: &CommunicationData) {
+    fn write_in_data(&mut self, data: &str, value: &DataBuffer) {
         match (data, value) {
-            ("a", CommunicationData::Bool(v)) => {
+            ("a", DataBuffer::Bool(v)) => {
                 self.a.update(*v);
             }
-            ("b", CommunicationData::Bool(v)) => {
+            ("b", DataBuffer::Bool(v)) => {
                 self.b.update(*v);
             }
-            ("c", CommunicationData::Bool(v)) => {
+            ("c", DataBuffer::Bool(v)) => {
                 self.c.update(*v);
             }
             _ => panic!("unknown data {data} or invalid communication data variant {value:?}"),
@@ -208,7 +216,7 @@ impl Into<cli::output::VoterInformation> for &Voter {
 
 impl std::fmt::Display for Voter {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let buf = cli::output::create_voter_string(self.into());
+        let buf = cli::output::voter_str_w_name(self.into(), self.instance_name);
         write!(f, "{buf}")
     }
 }

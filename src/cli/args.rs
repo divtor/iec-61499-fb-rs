@@ -6,6 +6,7 @@ pub enum Voter {
     #[default]
     Basic,
     Traited,
+    Runtime,
 }
 
 impl fmt::Display for Voter {
@@ -19,6 +20,7 @@ pub enum Mode {
     #[default]
     Sequence,
     Interactive,
+    Test,
 }
 
 impl fmt::Display for Mode {

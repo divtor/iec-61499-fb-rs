@@ -1,6 +1,6 @@
 //! internal data fields in function blocks
 
-use crate::fb::data::comm::CommunicationData;
+use crate::fb::data::comm::DataBuffer;
 
 use super::direction::{Direction, In, Out};
 
@@ -18,8 +18,8 @@ impl<D: Direction, T: ty::DataType> Data<D, T> {
         self.value.get()
     }
 
-    pub fn read_comm(&self) -> CommunicationData {
-        self.value.get_comm()
+    pub fn as_buf(&self) -> DataBuffer {
+        self.value.as_buf()
     }
 }
 
@@ -46,7 +46,7 @@ pub mod comm {
 
     /// enum to enable a type-safe runtime communication of `IEC 61131-3` data types between function blocks
     #[derive(Default, Clone, Debug)]
-    pub enum CommunicationData {
+    pub enum DataBuffer {
         SInt(i8),
         Int(i16),
         DInt(i32),
@@ -71,16 +71,22 @@ pub mod comm {
         #[default]
         Unassigned,
     }
+
+    impl std::fmt::Display for DataBuffer {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "{self:?}")
+        }
+    }
 }
 
 /// static inner data type system of function blocks
 pub mod ty {
     use std::time::Duration;
 
-    use crate::fb::data::comm::CommunicationData;
+    use crate::fb::data::comm::DataBuffer;
 
     /// `IEC 61131-3` data type markers
-    pub enum DataTypeKind {
+    pub enum DataKind {
         SInt,
         Int,
         DInt,
@@ -108,9 +114,9 @@ pub mod ty {
     pub trait DataType {
         type Inner;
 
-        fn kind(&self) -> DataTypeKind;
+        fn kind(&self) -> DataKind;
         fn get(&self) -> Self::Inner;
-        fn get_comm(&self) -> CommunicationData;
+        fn as_buf(&self) -> DataBuffer;
         fn set(&mut self, value: Self::Inner) -> ();
     }
 
@@ -121,16 +127,16 @@ pub mod ty {
             impl DataType for $name {
                 type Inner = $inner;
 
-                fn kind(&self) -> DataTypeKind {
-                    DataTypeKind::$name
+                fn kind(&self) -> DataKind {
+                    DataKind::$name
                 }
 
                 fn get(&self) -> Self::Inner {
                     self.data
                 }
 
-                fn get_comm(&self) -> CommunicationData {
-                    CommunicationData::$name(self.data)
+                fn as_buf(&self) -> DataBuffer {
+                    DataBuffer::$name(self.data)
                 }
 
                 fn set(&mut self, value: Self::Inner) {
@@ -214,16 +220,16 @@ pub mod ty {
     impl DataType for Date {
         type Inner = Vec<u8>;
 
-        fn kind(&self) -> DataTypeKind {
-            DataTypeKind::Date
+        fn kind(&self) -> DataKind {
+            DataKind::Date
         }
 
         fn get(&self) -> Self::Inner {
             self.data.clone()
         }
 
-        fn get_comm(&self) -> CommunicationData {
-            CommunicationData::Date(self.data.clone())
+        fn as_buf(&self) -> DataBuffer {
+            DataBuffer::Date(self.data.clone())
         }
 
         fn set(&mut self, value: Self::Inner) {
@@ -239,16 +245,16 @@ pub mod ty {
     impl DataType for TimeOfDay {
         type Inner = Vec<u8>;
 
-        fn kind(&self) -> DataTypeKind {
-            DataTypeKind::TimeOfDay
+        fn kind(&self) -> DataKind {
+            DataKind::TimeOfDay
         }
 
         fn get(&self) -> Self::Inner {
             self.data.clone()
         }
 
-        fn get_comm(&self) -> CommunicationData {
-            CommunicationData::TimeOfDay(self.data.clone())
+        fn as_buf(&self) -> DataBuffer {
+            DataBuffer::TimeOfDay(self.data.clone())
         }
 
         fn set(&mut self, value: Self::Inner) {
@@ -264,16 +270,16 @@ pub mod ty {
     impl DataType for DateTime {
         type Inner = Vec<u8>;
 
-        fn kind(&self) -> DataTypeKind {
-            DataTypeKind::DateTime
+        fn kind(&self) -> DataKind {
+            DataKind::DateTime
         }
 
         fn get(&self) -> Self::Inner {
             self.data.clone()
         }
 
-        fn get_comm(&self) -> CommunicationData {
-            CommunicationData::DateTime(self.data.clone())
+        fn as_buf(&self) -> DataBuffer {
+            DataBuffer::DateTime(self.data.clone())
         }
 
         fn set(&mut self, value: Self::Inner) {
@@ -289,16 +295,16 @@ pub mod ty {
     impl DataType for String {
         type Inner = Vec<u8>;
 
-        fn kind(&self) -> DataTypeKind {
-            DataTypeKind::String
+        fn kind(&self) -> DataKind {
+            DataKind::String
         }
 
         fn get(&self) -> Self::Inner {
             self.data.clone()
         }
 
-        fn get_comm(&self) -> CommunicationData {
-            CommunicationData::String(self.data.clone())
+        fn as_buf(&self) -> DataBuffer {
+            DataBuffer::String(self.data.clone())
         }
 
         fn set(&mut self, value: Self::Inner) {
@@ -314,16 +320,16 @@ pub mod ty {
     impl DataType for WString {
         type Inner = Vec<u16>;
 
-        fn kind(&self) -> DataTypeKind {
-            DataTypeKind::WString
+        fn kind(&self) -> DataKind {
+            DataKind::WString
         }
 
         fn get(&self) -> Self::Inner {
             self.data.clone()
         }
 
-        fn get_comm(&self) -> CommunicationData {
-            CommunicationData::WString(self.data.clone())
+        fn as_buf(&self) -> DataBuffer {
+            DataBuffer::WString(self.data.clone())
         }
 
         fn set(&mut self, value: Self::Inner) {

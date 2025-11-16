@@ -1,9 +1,9 @@
 use std::io::Write;
 
-use crate::fb_impl::traited_voter::Voter;
+use crate::fb_impl::voter_typed;
 
 pub fn simple_traited_runtime() {
-    let mut voter = Voter::default();
+    let mut voter = voter_typed::Voter::default();
 
     loop {
         println!("{voter}");

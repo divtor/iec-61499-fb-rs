@@ -195,7 +195,7 @@ impl Into<VoterInformation> for &Voter {
 
 impl fmt::Display for Voter {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let buf = cli::output::create_voter_string(self.into());
+        let buf = cli::output::voter_str(self.into());
         write!(f, "{buf}")
     }
 }

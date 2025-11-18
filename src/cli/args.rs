@@ -5,7 +5,7 @@ use std::fmt;
 pub enum Voter {
     #[default]
     Basic,
-    Traited,
+    Typed,
     Runtime,
 }
 
@@ -20,7 +20,8 @@ pub enum Mode {
     #[default]
     Sequence,
     Interactive,
-    Test,
+    TestConnectionParallel,
+    TestConnectionSequential,
 }
 
 impl fmt::Display for Mode {

@@ -15,16 +15,19 @@ fn main() {
         (Basic, Sequence) => {
             fb_impl::voter_basic::run_sequence(args.sequence);
         }
-        (Traited, Sequence) => {
+        (Typed, Sequence) => {
             fb_impl::voter_typed::run_sequence(args.sequence);
         }
-        (Traited, Interactive) => {
+        (Typed, Interactive) => {
             run_time_impl::interactive::simple_traited_runtime();
         }
-        (Runtime, Test) => {
-            run_time_impl::test_connections();
+        (Runtime, TestConnectionParallel) => {
+            run_time_impl::test_connections_par();
         }
-        (Basic | Traited, mode) => {
+        (Runtime, TestConnectionSequential) => {
+            run_time_impl::test_connections_seq();
+        }
+        (Basic | Typed, mode) => {
             println!("mode \"{mode}\" is not implemented yet!");
         }
         (implementation, _) => {

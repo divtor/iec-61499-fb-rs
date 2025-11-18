@@ -1,4 +1,4 @@
-use std::{any::Any, cell::RefCell, fmt::Debug, rc::Rc};
+use std::{any::Any, fmt::Debug};
 
 use data::comm::DataBuffer;
 
@@ -45,6 +45,3 @@ pub trait Fb: Any + Debug {
     /// executes a single step of the function block execution control, returns a flag whether the state after the step is unstable
     fn invoke_execution_control(&mut self) -> bool;
 }
-
-/// smart pointer to function blocks
-pub type SharedFunctionBlockRefCell = Rc<RefCell<dyn Fb>>;

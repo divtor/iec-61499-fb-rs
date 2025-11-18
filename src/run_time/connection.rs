@@ -148,12 +148,14 @@ impl std::fmt::Display for EventConn {
 
 // Port -------------------------------------------------------------------------------------------
 pub mod port {
-    use crate::fb::{SharedFunctionBlockRefCell, direction::Direction};
+    use std::{cell::RefCell, rc::Rc};
+
+    use crate::fb::{Fb, direction::Direction};
 
     /// represents in/output as references to function blocks including the relevant field name
     #[derive(Debug)]
     pub struct Port<D: Direction> {
-        pub fb_ref: SharedFunctionBlockRefCell,
+        pub fb_ref: Rc<RefCell<dyn Fb>>,
         pub field: &'static str,
 
         _direction_marker: std::marker::PhantomData<D>,
@@ -161,7 +163,7 @@ pub mod port {
 
     // TODO: ensure that `Event<In>` and `Data<In, _>` is used with `Port<In>` and vice versa
     impl<D: Direction> Port<D> {
-        pub fn new(fb_ref: SharedFunctionBlockRefCell, field: &'static str) -> Self {
+        pub fn new(fb_ref: Rc<RefCell<dyn Fb>>, field: &'static str) -> Self {
             Port {
                 fb_ref,
                 field,

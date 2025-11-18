@@ -2,7 +2,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use crate::{
     fb::{
-        Fb, SharedFunctionBlockRefCell,
+        Fb,
         direction::{In, Out},
     },
     fb_impl::voter_dynamic::Voter,
@@ -13,7 +13,7 @@ use crate::{
 pub struct Runtime {
     data_conns: Vec<DataConn>,
     event_conns: Vec<EventConn>,
-    fb_refs: Vec<SharedFunctionBlockRefCell>,
+    fb_refs: Vec<Rc<RefCell<dyn Fb>>>,
 }
 
 impl Runtime {
@@ -70,7 +70,7 @@ impl Runtime {
 
 // getters
 impl Runtime {
-    pub fn fbs(&self) -> &Vec<SharedFunctionBlockRefCell> {
+    pub fn fbs(&self) -> &Vec<Rc<RefCell<dyn Fb>>> {
         &self.fb_refs
     }
 

@@ -1,6 +1,6 @@
 //! internal data fields in function blocks
 
-use crate::fb::data::comm::DataBuffer;
+use crate::fb::data::{comm::DataBuffer, ty::DataKind};
 
 use super::direction::{Direction, In, Out};
 
@@ -20,6 +20,10 @@ impl<D: Direction, T: ty::DataType> Data<D, T> {
 
     pub fn as_buf(&self) -> DataBuffer {
         self.value.as_buf()
+    }
+
+    pub fn as_kind(&self) -> DataKind {
+        self.value.kind()
     }
 }
 
@@ -77,10 +81,6 @@ pub mod comm {
             write!(f, "{self:?}")
         }
     }
-
-    pub fn buffer_variant_eq(a: &DataBuffer, b: &DataBuffer) -> bool {
-        std::mem::discriminant(a) == std::mem::discriminant(b)
-    }
 }
 
 /// static inner data type system of function blocks
@@ -112,6 +112,10 @@ pub mod ty {
         Word,
         DWord,
         LWord,
+    }
+
+    pub fn kind_eq(a: &DataKind, b: &DataKind) -> bool {
+        std::mem::discriminant(a) == std::mem::discriminant(b)
     }
 
     /// Enables usage of implementing structs in `Data<Direction, DataType>`

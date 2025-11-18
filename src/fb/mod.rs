@@ -2,6 +2,8 @@ use std::{any::Any, fmt::Debug};
 
 use data::comm::DataBuffer;
 
+use crate::fb::data::ty::DataKind;
+
 pub mod data;
 pub mod direction;
 pub mod event;
@@ -36,11 +38,13 @@ pub trait Fb: Any + Debug {
     /// returns the field names of data in- or output associated WITH the given event
     fn event_associations(&self, event_str: &str) -> Vec<&'static str>;
 
-    /// gets the current value of any data as a buffer value
-    fn read_data(&self, data_str: &str) -> DataBuffer;
+    /// gets the current value of output data as a buffer value
+    fn read_out_data(&self, data_str: &str) -> DataBuffer;
 
     /// sets the value of an input data to the value inside given buffer
     fn write_in_data(&mut self, data_str: &str, buf: &DataBuffer);
+
+    fn get_data_kind(&self, data_str: &str) -> DataKind;
 
     /// executes a single step of the function block execution control, returns a flag whether the state after the step is unstable
     fn invoke_execution_control(&mut self) -> bool;

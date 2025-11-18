@@ -17,7 +17,12 @@ pub struct DataConn {
 
 impl DataConn {
     pub fn load_from(&mut self) {
-        self.buf = self.from.fb_ref.borrow().read_data(self.from.field).clone();
+        self.buf = self
+            .from
+            .fb_ref
+            .borrow()
+            .read_out_data(self.from.field)
+            .clone();
     }
 
     pub fn fetch_to(&self) {
@@ -164,6 +169,17 @@ pub mod port {
                 field,
                 _direction_marker: std::marker::PhantomData,
             }
+        }
+    }
+
+    impl<D: Direction> std::fmt::Display for Port<D> {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(
+                f,
+                "{}, {}",
+                self.fb_ref.borrow().instance_name(),
+                self.field
+            )
         }
     }
 }

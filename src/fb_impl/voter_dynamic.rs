@@ -6,7 +6,11 @@ use crate::{
     cli,
     fb::{
         Fb,
-        data::{Data, comm::DataBuffer, ty::Bool},
+        data::{
+            Data,
+            comm::DataBuffer,
+            ty::{Bool, DataKind},
+        },
         direction::{In, Out},
         event::{Event, ty::Signal},
     },
@@ -157,11 +161,8 @@ impl Fb for Voter {
         }
     }
 
-    fn read_data(&self, data: &str) -> DataBuffer {
+    fn read_out_data(&self, data: &str) -> DataBuffer {
         match data {
-            "a" => self.a.as_buf(),
-            "b" => self.b.as_buf(),
-            "c" => self.c.as_buf(),
             "state" => self.state.as_buf(),
             _ => panic!("unknown data {data}"),
         }
@@ -179,6 +180,16 @@ impl Fb for Voter {
                 self.c.update(*v);
             }
             _ => panic!("unknown data {data} or invalid communication data variant {value:?}"),
+        }
+    }
+
+    fn get_data_kind(&self, data: &str) -> DataKind {
+        match data {
+            "a" => self.a.as_kind(),
+            "b" => self.b.as_kind(),
+            "c" => self.c.as_kind(),
+            "state" => self.state.as_kind(),
+            _ => panic!("unknown data {data}"),
         }
     }
 }

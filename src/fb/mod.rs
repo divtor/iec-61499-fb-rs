@@ -36,8 +36,8 @@ pub trait Fb: Any + Debug {
     /// returns the field names of data in- or output associated WITH the given event
     fn event_associations(&self, event_str: &str) -> Vec<&'static str>;
 
-    /// gets the current value of output data as a buffer value
-    fn read_out_data(&self, data_str: &str) -> DataBuffer;
+    /// gets the current value of any data as a buffer value
+    fn read_data(&self, data_str: &str) -> DataBuffer;
 
     /// sets the value of an input data to the value inside given buffer
     fn write_in_data(&mut self, data_str: &str, buf: &DataBuffer);

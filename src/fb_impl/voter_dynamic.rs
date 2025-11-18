@@ -157,8 +157,11 @@ impl Fb for Voter {
         }
     }
 
-    fn read_out_data(&self, data: &str) -> DataBuffer {
+    fn read_data(&self, data: &str) -> DataBuffer {
         match data {
+            "a" => self.a.as_buf(),
+            "b" => self.b.as_buf(),
+            "c" => self.c.as_buf(),
             "state" => self.state.as_buf(),
             _ => panic!("unknown data {data}"),
         }

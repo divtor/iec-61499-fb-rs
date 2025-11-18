@@ -17,12 +17,7 @@ pub struct DataConn {
 
 impl DataConn {
     pub fn load_from(&mut self) {
-        self.buf = self
-            .from
-            .fb_ref
-            .borrow()
-            .read_out_data(self.from.field)
-            .clone();
+        self.buf = self.from.fb_ref.borrow().read_data(self.from.field).clone();
     }
 
     pub fn fetch_to(&self) {

@@ -2,7 +2,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use crate::{
     fb::{
-        Fb,
+        Fb, data,
         direction::{In, Out},
     },
     fb_impl::voter_dynamic::Voter,
@@ -45,7 +45,12 @@ impl Runtime {
 
         let from = Port::<Out>::new(self.fb_refs[from.0].clone(), from.1);
         let to = Port::<In>::new(self.fb_refs[to.0].clone(), to.1);
-        let buf = from.fb_ref.borrow().read_out_data(from.field);
+        let buf = from.fb_ref.borrow().read_data(from.field);
+
+        assert!(
+            data::comm::buffer_variant_eq(&buf, &to.fb_ref.borrow().read_data(to.field)),
+            "{from:?} and {to:?} use different DataBuffer variants!"
+        );
 
         let conn = DataConn { from, to, buf };
 

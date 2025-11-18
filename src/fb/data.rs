@@ -77,6 +77,10 @@ pub mod comm {
             write!(f, "{self:?}")
         }
     }
+
+    pub fn buffer_variant_eq(a: &DataBuffer, b: &DataBuffer) -> bool {
+        std::mem::discriminant(a) == std::mem::discriminant(b)
+    }
 }
 
 /// static inner data type system of function blocks

@@ -21,10 +21,10 @@ fn main() {
         (Typed, Interactive) => {
             run_time_impl::interactive::simple_traited_runtime();
         }
-        (Runtime, TestConnectionParallel) => {
+        (DynamicInRuntime, TestConnectionParallel) => {
             run_time_impl::test_connections_par();
         }
-        (Runtime, TestConnectionSequential) => {
+        (DynamicInRuntime, TestConnectionSequential) => {
             run_time_impl::test_connections_seq();
         }
         (Basic | Typed, mode) => {

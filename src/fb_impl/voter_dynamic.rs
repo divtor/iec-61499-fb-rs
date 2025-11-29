@@ -153,7 +153,7 @@ impl Fb for Voter {
         self.ready.reset();
     }
 
-    fn event_associations(&self, event: &str) -> Vec<&'static str> {
+    fn with(&self, event: &str) -> Vec<&'static str> {
         match event {
             "vote" | "reset" => vec!["a", "b", "c"],
             "voted" | "ready" => vec!["state"],
@@ -183,7 +183,7 @@ impl Fb for Voter {
         }
     }
 
-    fn get_data_kind(&self, data: &str) -> DataKind {
+    fn data_kind(&self, data: &str) -> DataKind {
         match data {
             "a" => self.a.as_kind(),
             "b" => self.b.as_kind(),

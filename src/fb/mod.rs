@@ -36,7 +36,7 @@ pub trait Fb: Any + Debug {
     fn clear_out_event(&mut self);
 
     /// returns the field names of data in- or output associated WITH the given event
-    fn event_associations(&self, event_str: &str) -> Vec<&'static str>;
+    fn with(&self, event_str: &str) -> Vec<&'static str>;
 
     /// gets the current value of output data as a buffer value
     fn read_out_data(&self, data_str: &str) -> DataBuffer;
@@ -44,7 +44,7 @@ pub trait Fb: Any + Debug {
     /// sets the value of an input data to the value inside given buffer
     fn write_in_data(&mut self, data_str: &str, buf: &DataBuffer);
 
-    fn get_data_kind(&self, data_str: &str) -> DataKind;
+    fn data_kind(&self, data_str: &str) -> DataKind;
 
     /// executes a single step of the function block execution control, returns a flag whether the state after the step is unstable
     fn invoke_execution_control(&mut self) -> bool;

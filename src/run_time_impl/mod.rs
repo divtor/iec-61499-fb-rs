@@ -7,7 +7,7 @@ use crate::{
 pub mod interactive;
 
 pub fn test_connections_par() {
-    let mut rt = run_time::basic::Runtime::default();
+    let mut rt = run_time::conns_w_refs::Runtime::default();
 
     let t = DataBuffer::Bool(true);
     let f = DataBuffer::Bool(false);
@@ -82,7 +82,7 @@ pub fn test_connections_par() {
 }
 
 pub fn test_connections_seq() {
-    let mut rt = run_time::basic::Runtime::default();
+    let mut rt = run_time::conns_w_refs::Runtime::default();
     let t = DataBuffer::Bool(true);
     let f = DataBuffer::Bool(false);
 

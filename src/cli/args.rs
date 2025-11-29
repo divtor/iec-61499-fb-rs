@@ -6,7 +6,8 @@ pub enum Voter {
     #[default]
     Basic,
     Typed,
-    Runtime,
+    Dynamic,
+    DynamicInRuntime,
 }
 
 impl fmt::Display for Voter {

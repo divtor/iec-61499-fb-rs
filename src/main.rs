@@ -1,37 +1,34 @@
 use clap::Parser;
 use iec_61499_fb_rs::{
-    cli::args::{Args, Mode, Voter},
+    cli::args::{Args, FunctionBlock, Mode},
     fb_impl, run_time_impl,
 };
 
 fn main() {
     let args: Args = Args::parse();
 
+    use FunctionBlock::*;
     use Mode::*;
-    use Voter::*;
 
     #[allow(unreachable_patterns)] // might be extended later
-    match (args.voter, args.mode) {
-        (Basic, Sequence) => {
-            fb_impl::voter_basic::run_sequence(args.sequence);
+    match (args.function_block, args.mode) {
+        (VoterBasic, Sequence) => {
+            fb_impl::voter::basic::run_sequence(args.sequence);
         }
-        (Typed, Sequence) => {
-            fb_impl::voter_typed::run_sequence(args.sequence);
+        (VoterTyped, Sequence) => {
+            fb_impl::voter::typed::run_sequence(args.sequence);
         }
-        (Typed, Interactive) => {
-            run_time_impl::interactive::simple_traited_runtime();
+        (VoterTyped, Interactive) => {
+            run_time_impl::interactive::simple_typed_runtime();
         }
-        (DynamicInRuntime, TestConnectionParallel) => {
+        (_, TestConnectionParallel) => {
             run_time_impl::test_connections_par();
         }
-        (DynamicInRuntime, TestConnectionSequential) => {
+        (_, TestConnectionSequential) => {
             run_time_impl::test_connections_seq();
         }
-        (Basic | Typed, mode) => {
-            println!("mode \"{mode}\" is not implemented yet!");
-        }
-        (implementation, _) => {
-            println!("voter implementation \"{implementation}\" does not exist!");
+        (implementation, mode) => {
+            println!("combination of \"{implementation}\"  and \"{mode}\" is not configured.");
         }
     }
 }

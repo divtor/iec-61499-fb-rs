@@ -1,6 +1,4 @@
-//! Builds upon the `traited_voter` concept, but
-//! more polished and designed with communication
-//! between function blocks in mind.
+//! Builds upon the `typed` concept, and provides implementation of a trait for dynamic dispatch.
 
 use crate::{
     cli,
@@ -14,7 +12,7 @@ use crate::{
         direction::{In, Out},
         event::{Event, ty::Signal},
     },
-    fb_impl::voter_util::state::VoterState,
+    fb_impl::voter::util::VoterState,
 };
 
 // TODO: make instance_name into a String -> allows for hotloading down the line

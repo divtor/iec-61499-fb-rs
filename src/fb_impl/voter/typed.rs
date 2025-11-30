@@ -11,7 +11,7 @@ use crate::{
         direction::{In, Out},
         event::{Event, ty::Signal},
     },
-    fb_impl::voter_util::state::VoterState,
+    fb_impl::voter::util::VoterState,
 };
 
 #[derive(Clone, Debug, Default)]

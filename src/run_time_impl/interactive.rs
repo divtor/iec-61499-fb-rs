@@ -1,12 +1,13 @@
 use std::io::Write;
 
-use crate::fb_impl::voter_typed;
+use crate::fb_impl::voter::typed;
 
-pub fn simple_traited_runtime() {
-    let mut voter = voter_typed::Voter::default();
+pub fn simple_typed_runtime() {
+    let mut voter = typed::Voter::default();
 
     loop {
         println!("{voter}");
+        println!("commands: quit, run, step, rs <signal_name>, tid <input_data_name>");
         print!("> ");
 
         std::io::stdout().flush().unwrap();
@@ -27,11 +28,6 @@ pub fn simple_traited_runtime() {
         let mut cmd = buf.split_whitespace();
 
         match cmd.next().unwrap() {
-            "help" => {
-                println!(
-                    "Available commands: quit, run, step, rs <signal_name>, tid <input_data_name>"
-                );
-            }
             "run" => {
                 voter.run_ecc();
             }

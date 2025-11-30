@@ -1,6 +1,6 @@
 use crate::{
     fb::{Fb, data::comm::DataBuffer},
-    fb_impl::voter_dynamic::Voter,
+    fb_impl::voter::dynamic_disp::Voter,
     run_time,
 };
 

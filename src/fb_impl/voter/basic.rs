@@ -9,7 +9,7 @@ use crate::{
         args::Sequence,
         output::{VoterInformation, voter_str},
     },
-    fb_impl::voter_util::state::VoterState,
+    fb_impl::voter::util::VoterState,
 };
 
 #[allow(dead_code)]

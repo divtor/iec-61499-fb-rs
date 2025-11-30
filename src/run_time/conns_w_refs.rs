@@ -1,3 +1,22 @@
+//! This runtime is used to test 2 aspects:
+//! - dynamic dispatch of function blocks
+//! - event/data connections between function blocks
+//!
+//! ### Dynamic dispatch
+//! Necessary to add non specified function blocks to the runtime
+//! ```
+//! voters: Vec<Voter> = ...; // voters present in the runtime
+//! fbs: Vec<Box<dyn Fb>> = ...; // any `struct`s that implement the `Fb` trait
+//! ```
+//!
+//! ### Connections
+//! Enable communication between function blocks.
+//!
+//! #### Connection implementation
+//! These connections are external to function blocks.
+//! This implementation uses `Rc<RefCell<dyn Fb>>` fields to store references to the function blocks.
+//! However, an `Arena` style implementation might be better, but was not evaluated here.
+
 use std::{cell::RefCell, rc::Rc};
 
 use crate::{
@@ -5,7 +24,7 @@ use crate::{
         Fb, data,
         direction::{In, Out},
     },
-    fb_impl::voter_dynamic::Voter,
+    fb_impl::voter::dynamic_disp::Voter,
 };
 
 use conns::{DataConn, EventConn};
@@ -21,12 +40,12 @@ pub struct Runtime {
 impl Runtime {
     /// adds any struct that implements the `Fb` trait to the pool of function blocks
     pub fn add_fb<T: Fb + 'static>(&mut self, fb: T) {
-        let instance_name_present = self
+        let name_exists = self
             .fbs
             .iter()
             .any(|fb_ex| fb_ex.borrow().instance_name() == fb.instance_name());
 
-        if instance_name_present {
+        if name_exists {
             println!(
                 "fb with instance name {} already exists in runtime",
                 fb.instance_name()
@@ -49,6 +68,7 @@ impl Runtime {
         let to = Port::<In>::new(self.fbs[to.0].clone(), to.1);
         let buf = from.fb_ref.borrow().read_out_data(from.field);
 
+        // verify ports use same data types
         {
             let data_kind_eq = data::ty::kind_eq(
                 &from.fb_ref.borrow().data_kind(from.field),
@@ -123,18 +143,20 @@ impl Runtime {
     /// reads all data connection buffers into the associated data fields where 'to' function block has an active in event
     pub fn read_buffers(&mut self) {
         for e_conn in &self.event_conns {
-            if e_conn.to_in_active() {
-                let name = e_conn.to_name();
-                let fields = e_conn.to_in_fields();
+            if !e_conn.to_in_active() {
+                continue;
+            }
 
-                if !fields.is_empty() {
-                    for d_conn in self
-                        .data_conns
-                        .iter_mut()
-                        .filter(|dc| name == dc.to_name() && fields.contains(&dc.to.field))
-                    {
-                        d_conn.fetch_to();
-                    }
+            let name = e_conn.to_name();
+            let fields = e_conn.to_in_fields();
+
+            if !fields.is_empty() {
+                for d_conn in self
+                    .data_conns
+                    .iter_mut()
+                    .filter(|dc| name == dc.to_name() && fields.contains(&dc.to.field))
+                {
+                    d_conn.fetch_to();
                 }
             }
         }

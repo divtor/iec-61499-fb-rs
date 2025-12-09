@@ -20,7 +20,7 @@ use crate::{
 #[derive(Default, Debug)]
 pub struct Voter {
     instance_name: &'static str,
-    ecc: VoterState,
+    ec_state: VoterState,
     vote: Event<In, Signal>,
     reset: Event<In, Signal>,
     voted: Event<Out, Signal>,
@@ -71,10 +71,10 @@ impl Fb for Voter {
     fn invoke_execution_control(&mut self) -> bool {
         let mut unstable = false;
 
-        match self.ecc {
+        match self.ec_state {
             VoterState::Ready => {
                 if self.vote.read_and_reset() {
-                    self.ecc = VoterState::Vote;
+                    self.ec_state = VoterState::Vote;
                     unstable = true;
                 }
             }
@@ -84,16 +84,16 @@ impl Fb for Voter {
                 self.voted.send();
 
                 if self.state.read() {
-                    self.ecc = VoterState::VotedPos;
+                    self.ec_state = VoterState::VotedPos;
                 } else {
-                    self.ecc = VoterState::Ready;
+                    self.ec_state = VoterState::Ready;
                 }
 
                 unstable = true;
             }
             VoterState::VotedPos => {
                 if self.reset.read_and_reset() {
-                    self.ecc = VoterState::Reset;
+                    self.ec_state = VoterState::Reset;
                     unstable = true;
                 }
             }
@@ -102,7 +102,7 @@ impl Fb for Voter {
 
                 self.ready.send();
 
-                self.ecc = VoterState::Ready;
+                self.ec_state = VoterState::Ready;
                 unstable = true;
             }
         }
@@ -110,7 +110,7 @@ impl Fb for Voter {
         unstable
     }
 
-    fn receive_event(&mut self, event: &str) {
+    fn set_event_in(&mut self, event: &str) {
         match event {
             "vote" => self.vote.receive(),
             "reset" => self.reset.receive(),
@@ -118,7 +118,7 @@ impl Fb for Voter {
         }
     }
 
-    fn active_in_event(&self) -> Option<&'static str> {
+    fn active_event_in(&self) -> Option<&'static str> {
         let mut event = None;
 
         if self.vote.read() {
@@ -132,7 +132,7 @@ impl Fb for Voter {
         event
     }
 
-    fn active_out_event(&self) -> Option<&'static str> {
+    fn active_event_out(&self) -> Option<&'static str> {
         let mut event = None;
 
         if self.voted.read() {
@@ -146,12 +146,12 @@ impl Fb for Voter {
         event
     }
 
-    fn clear_out_event(&mut self) {
+    fn clear_event_out(&mut self) {
         self.voted.reset();
         self.ready.reset();
     }
 
-    fn with(&self, event: &str) -> Vec<&'static str> {
+    fn with_for_event(&self, event: &str) -> Vec<&'static str> {
         match event {
             "vote" | "reset" => vec!["a", "b", "c"],
             "voted" | "ready" => vec!["state"],
@@ -159,14 +159,14 @@ impl Fb for Voter {
         }
     }
 
-    fn read_out_data(&self, data: &str) -> DataBuffer {
+    fn read_data_out(&self, data: &str) -> DataBuffer {
         match data {
             "state" => self.state.as_buf(),
             _ => panic!("unknown data {data}"),
         }
     }
 
-    fn write_in_data(&mut self, data: &str, value: &DataBuffer) {
+    fn write_data_in(&mut self, data: &str, value: &DataBuffer) {
         match (data, value) {
             ("a", DataBuffer::Bool(v)) => {
                 self.a.update(*v);
@@ -197,7 +197,7 @@ impl Fb for Voter {
 impl Into<cli::output::VoterInformation> for &Voter {
     fn into(self) -> cli::output::VoterInformation {
         cli::output::VoterInformation {
-            ecc: self.ecc.as_str(),
+            ecc: self.ec_state.as_str(),
             vote: if self.vote.read() {
                 "RECEIVED"
             } else {

@@ -127,6 +127,8 @@ impl Voter {
 pub fn run_sequence(sequence: Sequence) {
     let mut voter = Voter::default();
 
+    println!("{voter}");
+
     // setup voter according to sequence
     match sequence {
         Sequence::PositiveVote => {
@@ -157,6 +159,9 @@ pub fn run_sequence(sequence: Sequence) {
         voter.receive_signal("reset");
         voter.run_ecc();
     }
+
+    println!("Stable state after:");
+    println!("{voter}");
 }
 
 // -- printing ------------------------------------------------------------------------------------

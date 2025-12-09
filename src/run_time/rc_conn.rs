@@ -31,13 +31,13 @@ use conns::{DataConn, EventConn};
 use port::Port;
 
 #[derive(Default, Debug)]
-pub struct Runtime {
+pub struct RcConnRuntime {
     data_conns: Vec<DataConn>,
     event_conns: Vec<EventConn>,
     fbs: Vec<Rc<RefCell<dyn Fb>>>,
 }
 
-impl Runtime {
+impl RcConnRuntime {
     /// adds any struct that implements the `Fb` trait to the pool of function blocks
     pub fn add_fb<T: Fb + 'static>(&mut self, fb: T) {
         let name_exists = self
@@ -66,7 +66,7 @@ impl Runtime {
 
         let from = Port::<Out>::new(self.fbs[from.0].clone(), from.1);
         let to = Port::<In>::new(self.fbs[to.0].clone(), to.1);
-        let buf = from.fb_ref.borrow().read_out_data(from.field);
+        let buf = from.fb_ref.borrow().read_data_out(from.field);
 
         // verify ports use same data types
         {
@@ -99,7 +99,7 @@ impl Runtime {
 }
 
 // getters
-impl Runtime {
+impl RcConnRuntime {
     pub fn fbs(&self) -> &Vec<Rc<RefCell<dyn Fb>>> {
         &self.fbs
     }
@@ -113,9 +113,9 @@ impl Runtime {
     }
 }
 
-impl Runtime {
+impl RcConnRuntime {
     /// updates all data connection buffers where the `from` function block has an active out event
-    pub fn update_buffers(&mut self) {
+    pub fn send_from(&mut self) {
         for e_conn in &self.event_conns {
             if !e_conn.from_out_active() {
                 continue;
@@ -136,12 +136,18 @@ impl Runtime {
 
             if !e_conn.send() {
                 println!("{name} failed to send event");
+            } else {
+                println!("{name} sent event")
             }
+        }
+
+        for e_conn in &self.event_conns {
+            e_conn.from.fb_ref.borrow_mut().clear_event_out();
         }
     }
 
     /// reads all data connection buffers into the associated data fields where 'to' function block has an active in event
-    pub fn read_buffers(&mut self) {
+    pub fn read_in(&mut self) {
         for e_conn in &self.event_conns {
             if !e_conn.to_in_active() {
                 continue;
@@ -165,7 +171,7 @@ impl Runtime {
     /// clears all out events of function blocks
     pub fn clear_out_events(&self) {
         for fb_ref in self.fbs.iter() {
-            fb_ref.borrow_mut().clear_out_event();
+            fb_ref.borrow_mut().clear_event_out();
         }
     }
 
@@ -177,7 +183,7 @@ impl Runtime {
     }
 }
 
-impl std::fmt::Display for Runtime {
+impl std::fmt::Display for RcConnRuntime {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "Event connections:")?;
 
@@ -229,7 +235,7 @@ pub mod conns {
                 .from
                 .fb_ref
                 .borrow()
-                .read_out_data(self.from.field)
+                .read_data_out(self.from.field)
                 .clone();
         }
 
@@ -237,7 +243,7 @@ pub mod conns {
             self.to
                 .fb_ref
                 .borrow_mut()
-                .write_in_data(self.to.field, &self.buf);
+                .write_data_in(self.to.field, &self.buf);
         }
     }
 
@@ -279,16 +285,15 @@ pub mod conns {
         /// indicates successful sending with boolean flag
         pub fn send(&self) -> bool {
             let mut sent = false;
-            let mut f = self.from.fb_ref.borrow_mut();
+            let f = self.from.fb_ref.borrow();
             let mut t = self.to.fb_ref.borrow_mut();
 
-            if let Some(e) = f.active_out_event() {
+            if let Some(e) = f.active_event_out() {
                 let relevant_field = e == self.from.field;
-                let no_active_in = t.active_in_event().is_none();
+                let no_active_in = t.active_event_in().is_none();
 
                 if relevant_field && no_active_in {
-                    t.receive_event(self.to.field);
-                    f.clear_out_event();
+                    t.set_event_in(self.to.field);
                     sent = true;
                 }
             }
@@ -300,11 +305,11 @@ pub mod conns {
     // utils for easier usage for now
     impl EventConn {
         pub fn from_out_active(&self) -> bool {
-            self.from.fb_ref.borrow().active_out_event().is_some()
+            self.from.fb_ref.borrow().active_event_out().is_some()
         }
 
         pub fn to_in_active(&self) -> bool {
-            self.to.fb_ref.borrow().active_in_event().is_some()
+            self.to.fb_ref.borrow().active_event_in().is_some()
         }
 
         pub fn from_name(&self) -> &'static str {
@@ -321,9 +326,9 @@ pub mod conns {
             }
 
             let fb_from = self.from.fb_ref.borrow();
-            let event = fb_from.active_out_event().unwrap();
+            let event = fb_from.active_event_out().unwrap();
 
-            fb_from.with(event)
+            fb_from.with_for_event(event)
         }
 
         pub fn to_in_fields(&self) -> Vec<&'static str> {
@@ -332,9 +337,9 @@ pub mod conns {
             }
 
             let fb_to = self.to.fb_ref.borrow();
-            let event = fb_to.active_in_event().unwrap();
+            let event = fb_to.active_event_in().unwrap();
 
-            fb_to.with(event)
+            fb_to.with_for_event(event)
         }
     }
 
@@ -344,10 +349,11 @@ pub mod conns {
             let from_field = self.from.field;
             let to_name = self.to_name();
             let to_field = self.to.field;
+            let active = self.from_out_active();
 
             write!(
                 f,
-                "({from_name}, {from_field})----------->({to_name}, {to_field})"
+                "({from_name}, {from_field})----------->({to_name}, {to_field}) [ACTIVE: {active}]"
             )
         }
     }
@@ -367,7 +373,6 @@ pub mod port {
         _direction_marker: std::marker::PhantomData<D>,
     }
 
-    // TODO: ensure that `Event<In>` and `Data<In, _>` is used with `Port<In>` and vice versa
     impl<D: Direction> Port<D> {
         pub fn new(fb_ref: Rc<RefCell<dyn Fb>>, field: &'static str) -> Self {
             Port {

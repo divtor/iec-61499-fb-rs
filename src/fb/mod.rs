@@ -25,7 +25,7 @@ pub trait Fb: Any + Debug {
     fn instance_name(&self) -> &'static str;
 
     /// returns the `DataKind` variant of the queried data field
-    fn data_kind(&self, data_str: &str) -> DataKind;
+    fn data_kind(&self, data: &str) -> DataKind;
 
     // END_SECTION --------------------------------------------------------------------------------
 
@@ -45,17 +45,17 @@ pub trait Fb: Any + Debug {
 
     /// returns the field names of data in- or output
     /// associated WITH the given event
-    fn with_for_event(&self, event_str: &str) -> Vec<&'static str>;
+    fn with_for_event(&self, event: &str) -> Vec<&'static str>;
 
     // END_SECTION --------------------------------------------------------------------------------
 
     // SECTION: data hooks ------------------------------------------------------------------------
 
     /// gets the current value of output data as a buffer value
-    fn read_data_out(&self, data_str: &str) -> DataBuffer;
+    fn read_data_out(&self, data: &str) -> DataBuffer;
 
     /// sets the value of an input data to the value inside given buffer
-    fn write_data_in(&mut self, data_str: &str, buf: &DataBuffer);
+    fn write_data_in(&mut self, data: &str, buf: &DataBuffer);
 
     // END_SECTION --------------------------------------------------------------------------------
 

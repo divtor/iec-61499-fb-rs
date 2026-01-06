@@ -22,10 +22,10 @@ fn main() {
             run_time_impl::interactive::simple_typed_runtime();
         }
         (_, TestConnectionParallel) => {
-            run_time_impl::rc_conn_test::test_connections_par();
+            run_time_impl::conn_test::test_rc_conn_par_voter();
         }
         (_, TestConnectionSequential) => {
-            run_time_impl::rc_conn_test::test_connections_seq();
+            run_time_impl::conn_test::test_id_conn_seq_voter();
         }
         (implementation, mode) => {
             println!("combination of \"{implementation}\"  and \"{mode}\" is not configured.");

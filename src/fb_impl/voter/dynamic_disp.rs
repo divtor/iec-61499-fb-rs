@@ -16,7 +16,6 @@ use crate::{
 };
 
 // TODO: make instance_name into a String -> allows for hotloading down the line
-#[allow(dead_code)]
 #[derive(Default, Debug)]
 pub struct Voter {
     instance_name: &'static str,
@@ -166,8 +165,8 @@ impl Fb for Voter {
         }
     }
 
-    fn write_data_in(&mut self, data: &str, value: &DataBuffer) {
-        match (data, value) {
+    fn write_data_in(&mut self, data: &str, buf: &DataBuffer) {
+        match (data, buf) {
             ("a", DataBuffer::Bool(v)) => {
                 self.a.update(*v);
             }
@@ -177,7 +176,7 @@ impl Fb for Voter {
             ("c", DataBuffer::Bool(v)) => {
                 self.c.update(*v);
             }
-            _ => panic!("unknown data {data} or invalid communication data variant {value:?}"),
+            _ => panic!("unknown data {data} or invalid communication data variant {buf:?}"),
         }
     }
 

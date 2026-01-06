@@ -44,9 +44,9 @@ END_ALGORITHM
 - [x] concept of function block handling (see `Fb` trait) 
 - [x] concept of `Event` and `Data` connections
 - [x] basic `Runtime` to test data and event propergation
-- [ ] (?) ensure correct function block execution control handling (requires non-basic `Runtime` and adjustments for `Fb`)
-- [ ] (??) convert `Fb`s to `WebAssembly`
-- [ ] (??) generate `Fb`s from structured text
+- [x] event function blocks (E_SWITCH, E_CTU, E_SR)
+- [x] connections using `Id`s instead of references
+- [ ] test event function blocks
 
 ## Non-Goals
 - Implementing a fully featured `IEC 61499` solution for basic function block types

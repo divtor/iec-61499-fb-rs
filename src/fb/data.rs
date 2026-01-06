@@ -129,7 +129,11 @@ pub mod ty {
     }
 
     /// Implements the `DataType` trait for a given struct.
-    /// Requirement: the struct needs to have a field called `data`.
+    ///
+    /// - the struct needs to have a field called `data`.
+    /// - the type of `data` needs to implement `Copy`.
+    ///
+    /// If the struct deviates from these requirements, manual implementation is necessary.
     macro_rules! impl_data_type {
         ($name:ident, $inner:ty) => {
             impl DataType for $name {

@@ -1,12 +1,15 @@
-use crate::fb::{
-    Fb,
-    data::{
-        Data,
-        comm::DataBuffer,
-        ty::{Bool, DataKind, UInt},
+use crate::{
+    fb::{
+        Fb,
+        data::{
+            Data,
+            comm::DataBuffer,
+            ty::{Bool, DataKind, UInt},
+        },
+        direction::{In, Out},
+        event::{Event, ty::Signal},
     },
-    direction::{In, Out},
-    event::{Event, ty::Signal},
+    fb_impl::event::dbg_state_print,
 };
 
 #[derive(Clone, Debug, Default)]
@@ -103,6 +106,7 @@ impl Fb for E_CTU {
         match event {
             "cu" => vec!["pv"],
             "cuo" | "ro" => vec!["q", "cv"],
+            "r" => vec![],
             _ => panic!("unknown event {event}"),
         }
     }
@@ -129,24 +133,24 @@ impl Fb for E_CTU {
 
         match self.ec_state {
             CtuState::Start => {
-                if self.cu.read_and_reset() && self.cv.read() < self.pv.read() {
-                    self.ec_state = CtuState::Cu;
+                if self.cu.read_and_reset() && self.cv.read() < 65535 {
+                    dbg_state_print(self.instance_name, "START -> CU");
+                    self.enter(CtuState::Cu);
                     unstable = true;
                 } else if self.r.read_and_reset() {
-                    self.ec_state = CtuState::R;
+                    dbg_state_print(self.instance_name, "START -> RESET");
+                    self.enter(CtuState::R);
                     unstable = true;
                 }
             }
             CtuState::Cu => {
-                self.cu_algorithm();
-                self.cuo.send();
-                self.ec_state = CtuState::Start;
+                dbg_state_print(self.instance_name, "CU -> START");
+                self.enter(CtuState::Start);
                 unstable = true;
             }
             CtuState::R => {
-                self.r_algorithm();
-                self.ro.send();
-                self.ec_state = CtuState::Start;
+                dbg_state_print(self.instance_name, "RESET -> START");
+                self.enter(CtuState::Start);
                 unstable = true;
             }
         }
@@ -163,6 +167,42 @@ impl E_CTU {
 
     fn cu_algorithm(&mut self) {
         self.cv.write(self.cv.read() + 1);
-        self.q.write(self.cv.read() == self.pv.read());
+        self.q.write(self.cv.read() >= self.pv.read());
+    }
+}
+
+impl E_CTU {
+    fn enter(&mut self, state: CtuState) {
+        match state {
+            CtuState::Start => {}
+            CtuState::Cu => {
+                self.cu_algorithm();
+                self.cuo.send();
+            }
+            CtuState::R => {
+                self.r_algorithm();
+                self.ro.send();
+            }
+        }
+
+        self.ec_state = state;
+    }
+}
+
+impl std::fmt::Display for E_CTU {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}={{cu={}, r={}, cuo={}, ro={}, pv={}, q={}, cv={}, state={:?}}}",
+            self.instance_name,
+            self.cu.read(),
+            self.r.read(),
+            self.cuo.read(),
+            self.ro.read(),
+            self.pv.as_buf(),
+            self.q.as_buf(),
+            self.cv.as_buf(),
+            self.ec_state,
+        )
     }
 }

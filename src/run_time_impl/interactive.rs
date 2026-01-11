@@ -1,3 +1,5 @@
+//! Interactive test bench of a single `voter:typed::Voter` instance.
+
 use std::io::Write;
 
 use crate::fb_impl::voter::typed;

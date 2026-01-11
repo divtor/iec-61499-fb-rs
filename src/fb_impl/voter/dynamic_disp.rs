@@ -73,35 +73,26 @@ impl Fb for Voter {
         match self.ec_state {
             VoterState::Ready => {
                 if self.vote.read_and_reset() {
-                    self.ec_state = VoterState::Vote;
+                    self.enter(VoterState::Vote);
                     unstable = true;
                 }
             }
             VoterState::Vote => {
-                self.vote_algorithm();
-
-                self.voted.send();
-
                 if self.state.read() {
-                    self.ec_state = VoterState::VotedPos;
+                    self.enter(VoterState::VotedPos);
                 } else {
-                    self.ec_state = VoterState::Ready;
+                    self.enter(VoterState::Ready);
                 }
-
                 unstable = true;
             }
             VoterState::VotedPos => {
                 if self.reset.read_and_reset() {
-                    self.ec_state = VoterState::Reset;
+                    self.enter(VoterState::Reset);
                     unstable = true;
                 }
             }
             VoterState::Reset => {
-                self.reset_algorithm();
-
-                self.ready.send();
-
-                self.ec_state = VoterState::Ready;
+                self.enter(VoterState::Ready);
                 unstable = true;
             }
         }
@@ -188,6 +179,24 @@ impl Fb for Voter {
             "state" => self.state.as_kind(),
             _ => panic!("unknown data {data}"),
         }
+    }
+}
+
+impl Voter {
+    fn enter(&mut self, state: VoterState) {
+        match state {
+            VoterState::Ready | VoterState::VotedPos => {}
+            VoterState::Vote => {
+                self.vote_algorithm();
+                self.voted.send();
+            }
+            VoterState::Reset => {
+                self.reset_algorithm();
+                self.ready.send();
+            }
+        }
+
+        self.ec_state = state;
     }
 }
 

@@ -1,12 +1,15 @@
-use crate::fb::{
-    Fb,
-    data::{
-        Data,
-        comm::DataBuffer,
-        ty::{Bool, DataKind},
+use crate::{
+    fb::{
+        Fb,
+        data::{
+            Data,
+            comm::DataBuffer,
+            ty::{Bool, DataKind},
+        },
+        direction::{In, Out},
+        event::{Event, ty::Signal},
     },
-    direction::{In, Out},
-    event::{Event, ty::Signal},
+    fb_impl::event::dbg_state_print,
 };
 
 #[derive(Clone, Debug, Default)]
@@ -92,6 +95,7 @@ impl Fb for E_SR {
     fn with_for_event(&self, event: &str) -> Vec<&'static str> {
         match event {
             "eo" => vec!["q"],
+            "s" | "r" => vec![],
             _ => panic!("unknown event {event}"),
         }
     }
@@ -115,31 +119,46 @@ impl Fb for E_SR {
         match self.ec_state {
             SrState::Q0 => {
                 if self.s.read_and_reset() {
-                    self.ec_state = SrState::Set;
+                    dbg_state_print(self.instance_name, "Q0 -> SET");
+                    self.enter(SrState::Set);
                     unstable = true;
                 }
             }
             SrState::Set => {
-                self.set_algorithm();
-
-                self.eo.send();
-
                 if self.r.read_and_reset() {
-                    self.ec_state = SrState::Reset;
+                    dbg_state_print(self.instance_name, "SET -> RESET");
+                    self.enter(SrState::Reset);
+                    unstable = true;
                 }
             }
             SrState::Reset => {
-                self.reset_algorithm();
-
-                self.eo.send();
-
-                if self.r.read_and_reset() {
-                    self.ec_state = SrState::Set;
+                if self.s.read_and_reset() {
+                    dbg_state_print(self.instance_name, "RESET -> SET");
+                    self.enter(SrState::Set);
+                    unstable = true;
                 }
             }
         }
 
         unstable
+    }
+}
+
+impl E_SR {
+    fn enter(&mut self, state: SrState) {
+        match state {
+            SrState::Set => {
+                self.set_algorithm();
+                self.eo.send();
+            }
+            SrState::Reset => {
+                self.reset_algorithm();
+                self.eo.send();
+            }
+            _ => panic!("transition is not modelled"),
+        }
+
+        self.ec_state = state;
     }
 }
 
@@ -150,5 +169,20 @@ impl E_SR {
 
     fn reset_algorithm(&mut self) {
         self.q.write(false);
+    }
+}
+
+impl std::fmt::Display for E_SR {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}={{s={}, r={}, eo={}, q={}, state={:?}}}",
+            self.instance_name,
+            self.s.read(),
+            self.r.read(),
+            self.eo.read(),
+            self.q.as_buf(),
+            self.ec_state,
+        )
     }
 }

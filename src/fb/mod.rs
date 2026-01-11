@@ -1,4 +1,7 @@
-use std::{any::Any, fmt::Debug};
+use std::{
+    any::Any,
+    fmt::{Debug, Display},
+};
 
 use data::comm::DataBuffer;
 
@@ -11,7 +14,7 @@ pub mod event;
 // currently only used by `voter_dynamic`
 
 /// trait to enable structs to be handled as function blocks by the run time
-pub trait Fb: Any + Debug {
+pub trait Fb: Any + Debug + Display {
     // SECTION: util ------------------------------------------------------------------------------
 
     /// enables dynamic dispatch downcasting (e.g. dyn Fb -> Voter)

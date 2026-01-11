@@ -12,6 +12,10 @@ impl<D: Direction> Event<D, ty::Signal> {
     pub fn read(&self) -> bool {
         self.signal.get()
     }
+
+    pub fn reset(&mut self) {
+        self.signal.set(false);
+    }
 }
 
 impl Event<In, ty::Signal> {
@@ -31,10 +35,6 @@ impl Event<In, ty::Signal> {
 impl Event<Out, ty::Signal> {
     pub fn send(&mut self) {
         self.signal.set(true);
-    }
-
-    pub fn reset(&mut self) {
-        self.signal.set(false);
     }
 }
 

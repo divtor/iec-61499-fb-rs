@@ -19,12 +19,9 @@
 
 use std::{cell::RefCell, rc::Rc};
 
-use crate::{
-    fb::{
-        Fb, data,
-        direction::{In, Out},
-    },
-    fb_impl::voter::dynamic_disp::Voter,
+use crate::fb::{
+    Fb, data,
+    direction::{In, Out},
 };
 
 use conns::{DataConn, EventConn};
@@ -202,11 +199,7 @@ impl std::fmt::Display for RcConnRuntime {
         writeln!(f, "Function blocks:")?;
 
         for fb in &self.fbs {
-            write!(
-                f,
-                "{}",
-                fb.borrow().as_any().downcast_ref::<Voter>().unwrap()
-            )?;
+            write!(f, "{}", fb.borrow())?;
         }
 
         write!(f, "")

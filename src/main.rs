@@ -27,6 +27,15 @@ fn main() {
         (_, TestConnectionSequential) => {
             run_time_impl::conn_test::test_id_conn_seq_voter();
         }
+        (Ctu, _) => {
+            run_time_impl::e_control_test::test_ctu();
+        }
+        (Sr, _) => {
+            run_time_impl::e_control_test::test_sr();
+        }
+        (Switch, _) => {
+            run_time_impl::e_control_test::test_switch();
+        }
         (implementation, mode) => {
             println!("combination of \"{implementation}\"  and \"{mode}\" is not configured.");
         }

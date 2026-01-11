@@ -46,10 +46,11 @@ END_ALGORITHM
 - [x] basic `Runtime` to test data and event propergation
 - [x] event function blocks (E_SWITCH, E_CTU, E_SR)
 - [x] connections using `Id`s instead of references
-- [ ] test event function blocks
+- [x] test event function blocks
 
 ## Non-Goals
 - Implementing a fully featured `IEC 61499` solution for basic function block types
+- Formally defining execution semantics for function block types
 - Composite function block types
 - Service interface function block types
     - by extension: supporting hardware communication

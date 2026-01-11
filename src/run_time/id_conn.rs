@@ -15,13 +15,13 @@
 
 use std::collections::HashMap;
 
-use crate::{
-    fb::{
-        Fb,
-        direction::{In, Out},
-    }, fb_impl::voter::dynamic_disp::Voter, run_time::id_conn::port::Port
+use crate::fb::{
+    Fb,
+    direction::{In, Out},
 };
+
 use conns::{DataConn, EventConn};
+use port::Port;
 
 #[derive(Default, Debug)]
 pub struct IdConnRuntime {
@@ -93,6 +93,10 @@ impl IdConnRuntime {
 
     pub fn fbs(&self) -> &HashMap<&'static str, Box<dyn Fb>> {
         &self.fbs
+    }
+
+    pub fn fbs_mut(&mut self) -> &mut HashMap<&'static str, Box<dyn Fb>> {
+        &mut self.fbs
     }
 
     pub fn event_conns(&self) -> &Vec<EventConn> {
@@ -233,6 +237,10 @@ impl IdConnRuntime {
 
 impl std::fmt::Display for IdConnRuntime {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(
+            f,
+            "------------------------RUNTIME----------------------------"
+        )?;
         writeln!(f, "Event connections:")?;
 
         for ec in &self.event_conns {
@@ -250,14 +258,13 @@ impl std::fmt::Display for IdConnRuntime {
         writeln!(f, "Function blocks:")?;
 
         for fb in self.fbs.values() {
-            write!(
-                f,
-                "{}",
-                fb.as_any().downcast_ref::<Voter>().unwrap()
-            )?;
+            writeln!(f, "{}", fb)?;
         }
 
-        write!(f, "")
+        writeln!(
+            f,
+            "-----------------------------------------------------------"
+        )
     }
 }
 

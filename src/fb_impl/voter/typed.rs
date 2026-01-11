@@ -35,40 +35,48 @@ impl Voter {
         match self.ecc {
             VoterState::Ready => {
                 if self.vote.read_and_reset() {
-                    self.ecc = VoterState::Vote;
+                    self.enter(VoterState::Vote);
                     ecc_changed = true;
                 }
             }
             VoterState::Vote => {
-                self.vote_algorithm();
-
-                self.voted.send();
-
                 if self.state.read() {
-                    self.ecc = VoterState::VotedPos;
+                    self.enter(VoterState::VotedPos);
                 } else {
-                    self.ecc = VoterState::Ready;
+                    self.enter(VoterState::Ready);
                 }
 
                 ecc_changed = true;
             }
             VoterState::VotedPos => {
                 if self.reset.read_and_reset() {
-                    self.ecc = VoterState::Reset;
+                    self.enter(VoterState::Reset);
                     ecc_changed = true;
                 }
             }
             VoterState::Reset => {
-                self.reset_algorithm();
-
-                self.ready.send();
-
-                self.ecc = VoterState::Ready;
+                self.enter(VoterState::Ready);
                 ecc_changed = true;
             }
         }
 
         ecc_changed
+    }
+
+    fn enter(&mut self, state: VoterState) {
+        match state {
+            VoterState::Ready | VoterState::VotedPos => {}
+            VoterState::Vote => {
+                self.vote_algorithm();
+                self.voted.send();
+            }
+            VoterState::Reset => {
+                self.reset_algorithm();
+                self.ready.send();
+            }
+        }
+
+        self.ecc = state;
     }
 
     pub fn run_ecc(&mut self) {

@@ -9,6 +9,8 @@ use crate::fb::{
     event::{Event, ty::Signal},
 };
 
+use super::dbg_state_print;
+
 #[derive(Clone, Debug, Default)]
 enum SwitchState {
     #[default]
@@ -92,6 +94,7 @@ impl Fb for E_SWITCH {
     fn with_for_event(&self, event: &str) -> Vec<&'static str> {
         match event {
             "ei" => vec!["g"],
+            "eo0" | "eo1" => vec![],
             _ => panic!("unknown event {event}"),
         }
     }
@@ -117,25 +120,57 @@ impl Fb for E_SWITCH {
         match self.ec_state {
             SwitchState::Start => {
                 if self.ei.read_and_reset() {
-                    self.ec_state = match self.g.read() {
-                        true => SwitchState::G1,
-                        false => SwitchState::G0,
+                    match self.g.read() {
+                        true => {
+                            dbg_state_print(self.instance_name, "START -> G1");
+                            self.enter(SwitchState::G1);
+                        }
+                        false => {
+                            dbg_state_print(self.instance_name, "START -> G0");
+                            self.enter(SwitchState::G0);
+                        }
                     };
                     unstable = true;
                 }
             }
-            SwitchState::G0 => {
-                self.eo0.send();
-                self.ec_state = SwitchState::Start;
-                unstable = true;
-            }
-            SwitchState::G1 => {
-                self.eo1.send();
-                self.ec_state = SwitchState::Start;
+            SwitchState::G0 | SwitchState::G1 => {
+                dbg_state_print(self.instance_name, "G0/G1 -> START");
+                self.enter(SwitchState::Start);
                 unstable = true;
             }
         }
 
         unstable
+    }
+}
+
+impl E_SWITCH {
+    fn enter(&mut self, state: SwitchState) {
+        match state {
+            SwitchState::Start => {}
+            SwitchState::G0 => {
+                self.eo0.send();
+            }
+            SwitchState::G1 => {
+                self.eo1.send();
+            }
+        }
+
+        self.ec_state = state;
+    }
+}
+
+impl std::fmt::Display for E_SWITCH {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}={{ei={}, g={}, eo0={}, eo1={}, state={:?}}}",
+            self.instance_name,
+            self.ei.read(),
+            self.g.as_buf(),
+            self.eo0.read(),
+            self.eo1.read(),
+            self.ec_state,
+        )
     }
 }

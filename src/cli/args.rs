@@ -8,6 +8,9 @@ pub enum FunctionBlock {
     VoterTyped,
     VoterDynamic,
     VoterDynamicInRuntime,
+    Ctu,
+    Sr,
+    Switch,
 }
 
 impl fmt::Display for FunctionBlock {

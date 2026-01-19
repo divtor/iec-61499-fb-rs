@@ -159,11 +159,12 @@ impl IdConnRuntime {
 
             // update all relevant data conn buffers
             if !from_fields.is_empty() {
-                for dc in self
-                    .data_conns
-                    .iter_mut()
-                    .filter(|conn| conn.from.fb_name == from_name)
-                {
+                for dc in self.data_conns.iter_mut().filter(|conn| {
+                    let is_correct_fb = conn.from.fb_name == from_name;
+                    let targets_relevant_field = from_fields.contains(&conn.from.fb_field);
+
+                    is_correct_fb && targets_relevant_field
+                }) {
                     dc.buf = from.read_data_out(dc.from.fb_field);
                 }
             }

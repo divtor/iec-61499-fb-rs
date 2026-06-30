@@ -3,7 +3,7 @@
 use crate::{
     cli,
     fb::{
-        Fb,
+        Bfb,
         data::{
             Data,
             comm::DataBuffer,
@@ -58,7 +58,7 @@ impl Voter {
     }
 }
 
-impl Fb for Voter {
+impl Bfb for Voter {
     fn as_any(&self) -> &dyn std::any::Any {
         self
     }

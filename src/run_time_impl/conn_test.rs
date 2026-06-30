@@ -6,7 +6,7 @@
 //! and on a manual execution order (stepping etc.)
 
 use crate::{
-    fb::{Fb, data::comm::DataBuffer},
+    fb::{Bfb, data::comm::DataBuffer},
     fb_impl::voter::dynamic_disp::Voter,
     run_time,
 };

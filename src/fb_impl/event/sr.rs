@@ -1,6 +1,6 @@
 use crate::{
     fb::{
-        Fb,
+        Bfb,
         data::{
             Data,
             comm::DataBuffer,
@@ -40,7 +40,7 @@ impl E_SR {
     }
 }
 
-impl Fb for E_SR {
+impl Bfb for E_SR {
     fn as_any(&self) -> &dyn std::any::Any {
         self
     }

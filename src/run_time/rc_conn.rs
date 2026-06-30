@@ -20,7 +20,7 @@
 use std::{cell::RefCell, rc::Rc};
 
 use crate::fb::{
-    Fb, data,
+    Bfb, data,
     direction::{In, Out},
 };
 
@@ -31,12 +31,12 @@ use port::Port;
 pub struct RcConnRuntime {
     data_conns: Vec<DataConn>,
     event_conns: Vec<EventConn>,
-    fbs: Vec<Rc<RefCell<dyn Fb>>>,
+    fbs: Vec<Rc<RefCell<dyn Bfb>>>,
 }
 
 impl RcConnRuntime {
     /// adds any struct that implements the `Fb` trait to the pool of function blocks
-    pub fn add_fb<T: Fb + 'static>(&mut self, fb: T) {
+    pub fn add_fb<T: Bfb + 'static>(&mut self, fb: T) {
         let name_exists = self
             .fbs
             .iter()
@@ -97,7 +97,7 @@ impl RcConnRuntime {
 
 // getters
 impl RcConnRuntime {
-    pub fn fbs(&self) -> &Vec<Rc<RefCell<dyn Fb>>> {
+    pub fn fbs(&self) -> &Vec<Rc<RefCell<dyn Bfb>>> {
         &self.fbs
     }
 
@@ -355,19 +355,19 @@ pub mod conns {
 pub mod port {
     use std::{cell::RefCell, rc::Rc};
 
-    use crate::fb::{Fb, direction::Direction};
+    use crate::fb::{Bfb, direction::Direction};
 
     /// represents in/output as references to function blocks including the relevant field name
     #[derive(Debug)]
     pub struct Port<D: Direction> {
-        pub fb_ref: Rc<RefCell<dyn Fb>>,
+        pub fb_ref: Rc<RefCell<dyn Bfb>>,
         pub field: &'static str,
 
         _direction_marker: std::marker::PhantomData<D>,
     }
 
     impl<D: Direction> Port<D> {
-        pub fn new(fb_ref: Rc<RefCell<dyn Fb>>, field: &'static str) -> Self {
+        pub fn new(fb_ref: Rc<RefCell<dyn Bfb>>, field: &'static str) -> Self {
             Port {
                 fb_ref,
                 field,

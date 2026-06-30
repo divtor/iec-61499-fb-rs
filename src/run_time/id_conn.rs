@@ -16,7 +16,7 @@
 use std::collections::HashMap;
 
 use crate::fb::{
-    Fb,
+    Bfb,
     direction::{In, Out},
 };
 
@@ -25,14 +25,14 @@ use port::Port;
 
 #[derive(Default, Debug)]
 pub struct IdConnRuntime {
-    fbs: std::collections::HashMap<&'static str, Box<dyn Fb>>,
+    fbs: std::collections::HashMap<&'static str, Box<dyn Bfb>>,
     data_conns: Vec<DataConn>,
     event_conns: Vec<EventConn>,
 }
 
 impl IdConnRuntime {
     /// adds any struct that implements the `Fb` to the HashMap
-    pub fn add_fb<T: Fb + 'static>(&mut self, fb: T) {
+    pub fn add_fb<T: Bfb + 'static>(&mut self, fb: T) {
         if self.fb_exists(fb.instance_name()) {
             println!(
                 "fb with instance name {} already exists in runtime",
@@ -91,11 +91,11 @@ impl IdConnRuntime {
         self.event_conns.push(EventConn { from, to });
     }
 
-    pub fn fbs(&self) -> &HashMap<&'static str, Box<dyn Fb>> {
+    pub fn fbs(&self) -> &HashMap<&'static str, Box<dyn Bfb>> {
         &self.fbs
     }
 
-    pub fn fbs_mut(&mut self) -> &mut HashMap<&'static str, Box<dyn Fb>> {
+    pub fn fbs_mut(&mut self) -> &mut HashMap<&'static str, Box<dyn Bfb>> {
         &mut self.fbs
     }
 

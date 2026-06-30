@@ -1,5 +1,5 @@
 use crate::fb::{
-    Fb,
+    Bfb,
     data::{
         Data,
         comm::DataBuffer,
@@ -39,7 +39,7 @@ impl E_SWITCH {
     }
 }
 
-impl Fb for E_SWITCH {
+impl Bfb for E_SWITCH {
     fn as_any(&self) -> &dyn std::any::Any {
         self
     }

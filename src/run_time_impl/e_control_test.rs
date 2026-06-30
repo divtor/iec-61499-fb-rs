@@ -4,7 +4,7 @@
 //! - `E_SWITCH`
 
 use crate::{
-    fb::{Fb, data::comm::DataBuffer},
+    fb::{Bfb, data::comm::DataBuffer},
     fb_impl::event,
     run_time,
 };
